@@ -1,0 +1,151 @@
+/* projectexplorer.css — Styles für den Projekt-Explorer Panel */
+
+#project-explorer-container {
+    flex-shrink: 0;
+    width: 220px;
+    background: #1e293b;
+    border-right: 1px solid #334155;
+    display: none; /* Standardmäßig ausgeblendet, toggle via JS */
+    overflow: hidden;
+}
+
+.project-explorer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    color: #e2e8f0;
+    font-size: 13px;
+    user-select: none;
+}
+
+/* Header: Pfadanzeige + Hoch-Button */
+.project-explorer-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    background: #172033;
+    border-bottom: 1px solid #334155;
+    flex-shrink: 0;
+}
+
+.project-explorer-up-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.project-explorer-up-btn:hover:not(:disabled) {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+.project-explorer-up-btn:disabled {
+    cursor: default;
+}
+
+.project-explorer-path {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #94a3b8;
+    font-size: 11px;
+    padding: 2px 0;
+}
+
+/* Dateiliste */
+.project-explorer-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 0;
+}
+
+/* Scrollbar */
+.project-explorer-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.project-explorer-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.project-explorer-list::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+}
+
+.project-explorer-list::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* ===== NO PROJECT VIEW ===== */
+.project-explorer-no-project {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 20px;
+    text-align: center;
+}
+
+.no-project-icon {
+    color: #475569;
+    margin-bottom: 16px;
+}
+
+.no-project-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+.no-project-text {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.no-project-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.project-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.project-btn-open {
+    background: #2563eb;
+    color: white;
+}
+
+.project-btn-open:hover {
+    background: #3b82f6;
+}
+
+.project-btn-new {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+.project-btn-new:hover {
+    background: #475569;
+}

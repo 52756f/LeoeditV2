@@ -1,0 +1,44 @@
+#left-toolbar-container {
+    flex-shrink: 0;
+    background: #021A74;
+    border-right: 1px solid #71706bcd;
+}
+
+#asideToolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 4px;
+    gap: 4px;
+    min-width: 40px;
+}
+
+.tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #F8F9FA;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+}
+
+.tool-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+.tool-btn:hover {
+    background-color: #3d64ed;
+    border: 2px solid white
+}
+
+.tool-btn:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.15);
+}

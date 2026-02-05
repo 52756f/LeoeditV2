@@ -1,0 +1,433 @@
+<style>
+    /* --- CSS Variablen für das Farbthema (scoped) --- */
+    .ai-panel-root {
+        --ai-primary-blue: #005a9e;
+        --ai-bg-light: #f3f5f7;
+        --ai-sidebar-bg: #ffffff;
+        --ai-border-color: #d2d2d2;
+        --ai-text-main: #323130;
+        --ai-text-muted: #605e5c;
+        --ai-accent-green: #107c10;
+        --ai-accent-red: #a4262c;
+    }
+
+    .ai-panel-root {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+    }
+
+    /* --- AI Toolbar --- */
+    .ai-toolbar {
+        background-color: var(--ai-primary-blue);
+        color: white;
+        padding: 0 20px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .ai-toolbar-brand {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .ai-toolbar-nav {
+        display: flex;
+        gap: 10px;
+        margin-left: auto;
+    }
+
+    .ai-btn-tool {
+        background: transparent;
+        border: none;
+        color: white;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ai-btn-tool:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* --- Main Layout --- */
+    .ai-main-container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        width: 100%;
+        min-height: 0;
+    }
+
+    /* --- Sidebar --- */
+    .ai-sidebar {
+        width: 280px;
+        background-color: var(--ai-sidebar-bg);
+        border-right: 1px solid var(--ai-border-color);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        flex-shrink: 0;
+        overflow-y: auto;
+    }
+
+    .ai-sidebar-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--ai-text-muted);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .ai-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--ai-border-color);
+        border-radius: 4px;
+        font-size: 0.95rem;
+        background-color: white;
+        outline-color: var(--ai-primary-blue);
+    }
+
+    /* --- Chat Area --- */
+    .ai-chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #ffffff;
+        min-width: 0;
+    }
+
+    .ai-chat-history {
+        flex: 1;
+        padding: 24px 30px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background-image: radial-gradient(var(--ai-bg-light) 0.5px, transparent 0.5px);
+        background-size: 20px 20px;
+    }
+
+    /* --- Input Zone --- */
+    .ai-input-zone {
+        padding: 20px;
+        border-top: 1px solid var(--ai-border-color);
+        background-color: #fafafa;
+    }
+
+    .ai-input-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .prompt-input {
+        width: 100%;
+        min-height: 100px;
+        padding: 15px;
+        padding-bottom: 30px;
+        border: 1px solid var(--ai-border-color);
+        border-radius: 8px;
+        resize: vertical;
+        font-family: inherit;
+        font-size: 1rem;
+        outline: none;
+        background-color: #f6f6f6;
+    }
+
+    .ai-button-group {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .ai-btn {
+        padding: 8px 18px;
+        border: none;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ai-btn:hover {
+        opacity: 0.85;
+    }
+
+    .ai-btn-start {
+        background-color: var(--ai-accent-green);
+        color: white;
+    }
+
+    .ai-btn-stop {
+        background-color: #eee;
+        color: var(--ai-accent-red);
+        border: 1px solid var(--ai-border-color);
+    }
+
+    .ai-status-dot {
+        height: 10px;
+        width: 10px;
+        background-color: var(--ai-accent-green);
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+
+    .ai-working-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: red;
+        border-radius: 50%;
+        margin-left: 8px;
+        animation: ai-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes ai-pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.3; }
+        100% { opacity: 1; }
+    }
+
+    .ai-panel-root pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+ 
+
+    /* Message container */
+.message {
+    display: flex;
+    flex-direction: column;
+    margin: 12px 0;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* User message - right-aligned */
+.user-message {
+    margin-left: auto;
+    align-items: flex-end;
+    max-width: 75%;
+}
+
+/* Assistant message - left-aligned */
+.assistant-message {
+    margin-right: auto;
+    max-width: 75%;
+}
+
+/* Message header with icon and prompt */
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+}
+
+.message-icon {
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.message-prompt {
+    color: #666;
+    font-style: italic;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+/* User message bubble */
+.user-message .message-content {
+    background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 18px 18px 4px 18px;
+    box-shadow: 0 2px 8px rgba(0, 90, 158, 0.3);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* Assistant message bubble */
+.assistant-message .message-content {
+    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+    color: #333;
+    padding: 10px 16px;
+    border-radius: 18px 18px 18px 4px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* Prompt bubbles (optional for quick actions) */
+.prompt-bubble {
+    background: linear-gradient(135deg, #f0f8ff 0%, #e6f2ff 100%);
+    border: 1px solid #cce5ff;
+    color: #0066cc;
+    padding: 8px 12px;
+    border-radius: 10px;
+    margin: 4px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.prompt-bubble:hover {
+    background: linear-gradient(135deg, #e6f2ff 0%, #d6e8ff 100%);
+    transform: translateY(-1px);
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+    .ai-smalltext {
+        font-size: 0.85rem;
+        color: var(--ai-text-muted);
+    }
+
+    .ai-infolist {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .ai-btn-clear {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        background: transparent;
+        border: none;
+        color: var(--ai-text-muted);
+        cursor: pointer;
+        padding: 5px;
+    }
+
+    .ai-btn-clear:hover {
+        color: var(--ai-accent-red);
+    }
+</style>
+
+<div class="ai-panel-root">
+    <header class="ai-toolbar">
+        <div class="ai-toolbar-brand">AI Communication Center</div>
+        <nav class="ai-toolbar-nav">
+            <button class="ai-btn-tool"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-off-icon lucide-message-square-off"><path d="M19 19H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.7.7 0 0 1 2 21.286V5a2 2 0 0 1 1.184-1.826"/><path d="m2 2 20 20"/><path d="M8.656 3H20a2 2 0 0 1 2 2v11.344"/></svg>Chat leeren</button>
+            <button class="ai-btn-tool"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info-icon lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>KI Info</button>
+        </nav>
+    </header>
+
+    <div class="ai-main-container">
+        <aside class="ai-sidebar">
+            <div>
+                <label class="ai-sidebar-label">KI-Modell Konfiguration</label>
+                <select id="ai-model-selector" class="ai-select">
+                    <optgroup label="Free Models">                       
+                           <option value="xiaomi/mimo-v2-flash" data-outputpreis="0,00$" data-inputpreis="0,00$"
+                            data-maxoutput="262K" data-aitype="Stand: Jan 2026+|Textgenerierung|Übersetzungen" selected>MiMo V2 Flash</option>
+                        <option value="nvidia/nemotron-3-nano-30b-a3b:free" data-outputpreis="0,00$" data-inputpreis="0,00$"
+                            data-maxoutput="256K" data-aitype="Stand: Jan 2024|Identität GPT-3.5|Textgenerierung|Übersetzungen|Kreatives Schreiben|Konversationsfluss">Nemotron 3 Nano 30B</option>
+                        <option value="nvidia/nemotron-nano-9b-v2:free" data-outputpreis="0,00$" data-inputpreis="0,00$"
+                            data-maxoutput="128K" data-aitype="Stand: Dez 2023|Textgenerierung|Konversationsführung|Information|Übersetzungen|Textanalyse|Kreatives Schreiben">Nemotron Nano 9B V2</option>
+                        <option value="qwen/qwen3-coder:free" data-outputpreis="0,00$" data-inputpreis="0,00$"
+                            data-maxoutput="262K" data-aitype="Stand: Jan 2024|Text-Modell|Text erstellen|Übersetzen">Qwen 3 Coder</option>
+                        <option value="tngtech/tng-r1t-chimera:free" data-outputpreis="0,00$" data-inputpreis="0,00$"
+                            data-maxoutput="164K" data-aitype="Stand: Dez 2023|Textgenerierung|Konversation|Übersetzungen|Kreative Texte">TNG Chimera</option>
+                        <option value="nousresearch/hermes-3-llama-3.1-405b:free" data-outputpreis="0,00$"
+                            data-inputpreis="0,00$" data-maxoutput="131K" data-aitype="Stand: 2023|Textgenerierung|Übersetzungen|Konversationsunterstützung|Dateianalyse Text|Internetsuche">Hermes 3 Llama 3.1 405B</option>
+                        <option value="tngtech/deepseek-r1t-chimera:free" data-outputpreis="0,00$" data-inputpreis="0,00$"
+                            data-maxoutput="164K" data-aitype="Stand: Dez 2023|Identität:GPT 3.5|Textgenerierung|Konversationsführung|Inhaltsanalyse|Übersetzung|Codegenerierung">DeepSeek R1T Chimera</option>
+                        <option value="mistralai/devstral-2512:free" data-outputpreis="0,00$" data-inputpreis="0,00$"
+                            data-maxoutput="262K" data-aitype="Stand: Dez 2023|Textgenerierung|Konversationsführung|Recherche|Übersetzungen|Textanalyse">Devstral 2512</option>
+                    </optgroup>
+                    <optgroup label="Payable Models">
+                        <option value="anthropic/claude-sonnet-4" data-outputpreis="15$" data-inputpreis="3$"
+                            data-maxoutput="200K" data-aitype="Stand: Jan 2025|Code-Erstellung|Textgenerierung|Analyse|Recherche|Mathematik">Claude Sonnet 4</option>
+                        <option value="anthropic/claude-3.5-sonnet" data-outputpreis="15$" data-inputpreis="3$"
+                            data-maxoutput="200K" data-aitype="Stand: Apr 2024|Code-Erstellung|Textgenerierung|Analyse|Recherche|Mathematik">Claude 3.5 Sonnet</option>
+                        <option value="anthropic/claude-3-haiku" data-outputpreis="1,25$" data-inputpreis="0,25$"
+                            data-maxoutput="200K" data-aitype="Stand: Aug 2023|Textgenerierung|Recherche|Datenanalyse|Mathematik|Code-Erstellung">Claude 3 Haiku</option>
+                        <option value="minimax/minimax-m2.1" data-outputpreis="0.48$" data-inputpreis="0.12$"
+                            data-maxoutput="197K" data-aitype="Stand: unbekannt|OpenAI GPT|Textgenerierung">MiniMax M2.1</option>
+                        <option value="openai/gpt-4o-mini" data-outputpreis="0,6$" data-inputpreis="0,15$"
+                            data-maxoutput="128K" data-aitype="Stand: Okt 2023|Textverarbeitung|Sprachverständnis|Informationsabruf ohne Internet|Textanalysen|Einfache Programmierung">GPT 4o mini</option>
+                        <option value="qwen/qwen3-coder-flash" data-outputpreis="1,50$" data-inputpreis="0,30$"
+                            data-maxoutput="128K" data-aitype="Stand: Dez 2023|Textgenerierung|Konversationsführung|Übersetzungen|Textanalyse|Kreatives Schreiben">Qwen 3 Coder Flash</option>
+                        <option value="amazon/nova-micro-v1" data-outputpreis="0,14$" data-inputpreis="0,035$"
+                            data-maxoutput="128K" data-aitype="Stand: Aug 2025|gpt-oss-120b-Modell|Textgenerierung|Konversationsführung|Textanalyse|Übersetzungen|Codegenerierung">Amazon Nova Micro V1</option>
+                        <option value="openai/gpt-5-mini" data-outputpreis="2,00$" data-inputpreis="0,25$"
+                            data-maxoutput="128K" data-aitype="Stand: Jun 2024|Textverarbeitung|Sprachverständnis|Übersetzungen|Programmieren|Datenanalyse|Kreatives Schreiben|Multimodal Text+Bild|Webzugriff unklar">GPT 5 mini</option>
+                        <option value="xiaomi/mimo-v2-flash" data-outputpreis="0,29$" data-inputpreis="0,09$"
+                            data-maxoutput="262K" data-aitype="Stand: Okt 2023|Websuche|Textgenerierung|Übersetzungen|Programmierung|Analyse|Ideenfindung">MiMo V2 Flash</option>
+                                                    
+                    </optgroup>
+                </select>
+            </div>
+            <div id="ai-pricing" class="ai-smalltext">In tokens: 0,00$ <br> Out tokens: 0,00$ <br> Max Output: 0.00K</div>
+            <span style="display: block; height: 1px; background: var(--ai-border-color); margin: 10px 0;"></span>
+            <div id="ai-knowledge" class="ai-smalltext"></div>
+            <div style="margin-top: auto; font-size: 0.85rem; color: var(--ai-text-muted); display: flex; align-items: center;">
+                <span class="ai-status-dot"></span> System bereit
+            </div>
+        </aside>
+
+        <main class="ai-chat-area">
+            <div class="ai-chat-history chat-history">
+                <div id="ai-start-message" style="text-align: center; color: var(--ai-text-muted); margin-top: 100px;">
+                    <p>Wählen Sie ein Modell und senden Sie einen Prompt ab.</p>
+                </div>
+            </div>
+
+            <div class="ai-input-zone">
+                <div class="ai-input-wrapper">
+                    <div style="position: relative; display: flex; align-items: flex-start;">
+                        <div style="flex: 1; position: relative;">
+                            <textarea class="prompt-input"
+                                placeholder="Fragen Sie die KI etwas... (Shift+Enter für neue Zeile)"></textarea>
+                            <button class="ai-btn-clear btn-clear" title="Eingabe löschen">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ai-button-group">
+                        <button class="ai-btn ai-btn-stop btn-stop">
+                            <span>⏹</span> Stop
+                        </button>
+                        <button class="ai-btn ai-btn-start btn-start">
+                            <span>▶</span> Start
+                            <span class="ai-working-indicator working-indicator" style="display: none;"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>

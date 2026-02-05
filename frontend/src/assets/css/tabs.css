@@ -1,0 +1,622 @@
+/* ===== TAB VIEW CONTAINER ===== */
+.tab-view-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff; /* Light background */
+    color: #24292e; /* Dark text */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+}
+
+/* ===== TABS HEADER ===== */
+.tabs-header {
+    height: 32px; /* Compact height */
+    background: #f8f8f8; /* Light header background */
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #e1e4e8; /* Subtle border */
+    user-select: none;
+    padding: 0 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.tabs-list {
+    flex: 1;
+    display: flex;
+    overflow-x: auto;
+    height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: #c0c0c0 #f0f0f0;
+}
+
+.tabs-list::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tabs-list::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 2px;
+}
+
+.tabs-list::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border-radius: 2px;
+}
+
+.tabs-list::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+/* ===== TAB STYLES ===== */
+.tab {
+    height: 100%;
+    min-width: 80px; /* Compact minimum width */
+    max-width: 180px;
+    background: #f8f8f8; /* Light tab background */
+    border-right: 1px solid #e1e4e8;
+    display: flex;
+    align-items: center;
+    padding: 0 8px; /* Tight padding */
+    cursor: pointer;
+    position: relative;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 3px 3px 0 0;
+    font-size: 12px;
+    gap: 6px;
+}
+
+.tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.2s;
+}
+
+.tab:hover {
+    background: #e8e8e8;
+}
+
+.tab:hover::before {
+    background: #d0d0d0;
+}
+
+.tab.active {
+    background: #ffffff; /* Match container background */
+    color: #000000;
+    border-bottom: none;
+    box-shadow: inset 0 -2px 0 #0078d4; /* VS Code light accent */
+}
+
+.tab-icon {
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6a737d; /* Muted icon color */
+    font-size: 14px;
+}
+
+.tab.active .tab-icon {
+    color: #000000;
+}
+
+.tab-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    padding-right: 6px;
+    line-height: 1.3;
+    font-weight: 400;
+    color: #586069; /* Muted text */
+}
+
+.tab.active .tab-title {
+    color: #000000;
+    font-weight: 500;
+}
+
+.tab-modified::after {
+    content: '•';
+    color: #0078d4;
+    font-size: 16px;
+    line-height: 1;
+    margin-left: 4px;
+    position: relative;
+    top: 1px;
+}
+
+.tab-close {
+    background: none;
+    border: none;
+    color: #6a737d;
+    font-size: 14px;
+    line-height: 14px;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 2px;
+    flex-shrink: 0;
+}
+
+.tab:hover .tab-close {
+    opacity: 1;
+}
+
+.tab-close:hover {
+    background: #d0d0d0;
+    color: #000000;
+}
+
+.tab-close:active {
+    background: #b0b0b0;
+}
+
+.add-tab-btn {
+    width: 28px; /* Compact button */
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: #6a737d;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border-radius: 3px;
+    margin-left: 2px;
+}
+
+.add-tab-btn:hover {
+    background: #e8e8e8;
+    color: #000000;
+}
+
+.add-tab-btn:active {
+    background: #c0c0c0;
+}
+
+/* ===== EDITOR CONTAINER ===== */
+.editor-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.editor-wrapper {
+    width: 100%;
+    height: 100%;
+}
+
+/* ===== CODEMIRROR EDITOR - VISUAL STUDIO CODE LIGHT THEME ===== */
+.editor-wrapper .cm-editor {
+    height: 100%;
+    font-family: 'Fira Code', 'Source Code Pro', monospace !important; /* Web-safe fallback */
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.editor-wrapper .cm-editor .cm-scroller {
+    background: #ffffff; /* Light editor background */
+    font-family: 'Fira Code', 'Source Code Pro', monospace !important; /* Web-safe fallback */
+}
+
+.editor-wrapper .cm-editor .cm-gutters {
+    background: #f6f8fa; /* Light gutter background */
+    border-right: 1px solid #e1e4e8;
+    color: #6a737d; /* Line numbers color */
+    font-size: 12px;
+}
+
+.editor-wrapper .cm-editor .cm-gutterElement {
+    color: #6a737d;
+}
+
+.editor-wrapper .cm-editor .cm-activeLineGutter {
+    background: #e8f4ff;
+    color: #000000;
+}
+
+.editor-wrapper .cm-editor .cm-activeLine {
+    background: #f6f8fa; /* Subtle active line */
+}
+
+.editor-wrapper .cm-editor .cm-cursor {
+    border-left: 1px solid #000000;
+}
+
+.editor-wrapper .cm-editor .cm-selectionBackground {
+    background: #c8e1ff; /* Light blue selection */
+    opacity: 0.4;
+}
+
+.editor-wrapper .cm-editor .cm-selectionMatch {
+    background: #e8f4ff;
+    outline: 1px solid #b8d4ff;
+}
+
+/* ===== SYNTAX HIGHLIGHTING - VS CODE LIGHT COLORS ===== */
+.cm-keyword {
+    color: #0000ff; /* Blue keywords */
+    font-weight: bold;
+}
+
+.cm-atom {
+    color: #0000ff;
+}
+
+.cm-boolean {
+    color: #0000ff;
+}
+
+.cm-number {
+    color: #098658; /* Dark green numbers */
+}
+
+.cm-string {
+    color: #a31515; /* Red strings */
+}
+
+.cm-string2 {
+    color: #a31515;
+}
+
+.cm-comment {
+    color: #008000; /* Green comments */
+    font-style: italic;
+}
+
+.cm-variable {
+    color: #001080; /* Dark blue variables */
+}
+
+.cm-variable-2 {
+    color: #001080;
+}
+
+.cm-variable-3 {
+    color: #001080;
+}
+
+.cm-def {
+    color: #795e26; /* Brown functions */
+    font-weight: bold;
+}
+
+.cm-property {
+    color: #001080;
+}
+
+.cm-attribute {
+    color: #001080;
+}
+
+.cm-type {
+    color: #267f99; /* Teal types */
+    font-weight: bold;
+}
+
+.cm-builtin {
+    color: #0000ff;
+}
+
+.cm-operator {
+    color: #000000;
+}
+
+.cm-tag {
+    color: #800000;
+}
+
+.cm-bracket {
+    color: #000000;
+}
+
+.cm-meta {
+    color: #000000;
+}
+
+.cm-qualifier {
+    color: #6a737d;
+}
+
+.cm-error {
+    color: #e51400;
+    text-decoration: underline wavy;
+}
+
+/* ===== CODEMIRROR SEARCH & GOTO LINE PANELS ===== */
+.editor-wrapper .cm-editor .cm-panels {
+    background: #1e1e1e;
+    color: #cccccc;
+    border-bottom: 1px solid #3c3c3c;
+}
+
+.editor-wrapper .cm-editor .cm-panels-top {
+    border-bottom: 1px solid #3c3c3c;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search {
+    background: #252526;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search input,
+.editor-wrapper .cm-editor .cm-panel.cm-search select {
+    background: #3c3c3c;
+    color: #cccccc;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-size: 13px;
+    outline: none;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search input:focus {
+    border-color: #007acc;
+    box-shadow: 0 0 0 1px #007acc;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search button {
+    background: #3c3c3c;
+    color: #cccccc;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search button:hover {
+    background: #505050;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search button:active {
+    background: #007acc;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search button[name="close"] {
+    background: transparent;
+    border: none;
+    color: #999999;
+    font-size: 16px;
+    padding: 2px 6px;
+    cursor: pointer;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search button[name="close"]:hover {
+    color: #ffffff;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search label {
+    color: #cccccc;
+    font-size: 12px;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search .cm-textfield {
+    background: #3c3c3c;
+    color: #cccccc;
+    border: 1px solid #555555;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-search .cm-textfield:focus {
+    border-color: #007acc;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-gotoLine {
+    background: #252526;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #cccccc;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-gotoLine input {
+    background: #3c3c3c;
+    color: #cccccc;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-size: 13px;
+    outline: none;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-gotoLine input:focus {
+    border-color: #007acc;
+    box-shadow: 0 0 0 1px #007acc;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-gotoLine button {
+    background: #3c3c3c;
+    color: #cccccc;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.editor-wrapper .cm-editor .cm-panel.cm-gotoLine button:hover {
+    background: #505050;
+}
+
+/* ===== IMAGE VIEWER ===== */
+.image-viewer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #1e1e1e;
+    overflow: auto;
+}
+
+.image-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow: auto;
+}
+
+.loaded-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.image-info {
+    padding: 8px 16px;
+    color: #a0a0a0;
+    font-size: 12px;
+    text-align: center;
+    background: #252526;
+    width: 100%;
+    border-top: 1px solid #3c3c3c;
+}
+
+/* ===== PDF VIEWER ===== */
+.pdf-viewer {
+    display: flex;
+    background: #525659;
+}
+
+.loaded-pdf {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* ===== CONTEXT MENU ===== */
+.tab-context-menu {
+    position: fixed;
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+    border-radius: 4px;
+    padding: 4px 0;
+    z-index: 1000;
+    min-width: 160px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    font-size: 12px;
+    color: #24292e;
+}
+
+.tab-context-menu-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-context-menu-item:hover {
+    background: #f3f4f6;
+    color: #000000;
+}
+
+.tab-context-menu-item[aria-disabled="true"] {
+    color: #959da6;
+    cursor: default;
+}
+
+.tab-context-menu-item[aria-disabled="true"]:hover {
+    background: transparent;
+}
+
+.tab-context-menu-divider {
+    height: 1px;
+    background: #e1e4e8;
+    margin: 4px 0;
+}
+
+/* ===== DRAG & DROP INDICATOR ===== */
+.tab-drop-indicator {
+    position: absolute;
+    top: 0;
+    height: 3px;
+    background: #0078d4;
+    pointer-events: none;
+    transition: left 0.1s, width 0.1s;
+}
+
+/* ===== BADGE (for modified files) ===== */
+.tab-badge {
+    background: #0078d4;
+    color: #ffffff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+}
+
+/* ===== HOVER EFFECTS ===== */
+.tab-item:hover:not(.active) {
+    background: linear-gradient(to top, #f0f0f0 0%, #f8f8f8 100%);
+}
+
+/* ===== FOCUS STATES ===== */
+.tab:focus-visible {
+    outline: 2px solid #0078d4;
+    outline-offset: -2px;
+}
+
+.tab-context-menu-item:focus-visible {
+    outline: 2px solid #0078d4;
+    outline-offset: -2px;
+}
+
+/* ===== SELECTION TEXT COLOR ===== */
+::selection {
+    background: #c8e1ff;
+    color: #000000;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+    .tab {
+        min-width: 60px;
+        padding: 0 6px;
+    }
+    
+    .tab-title {
+        display: none;
+    }
+    
+    .tab-icon {
+        margin: 0 auto;
+    }
+    
+    .add-tab-btn {
+        width: 24px;
+    }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .tabs-header {
+        display: none;
+    }
+    
+    .editor-container {
+        height: 100vh;
+    }
+}

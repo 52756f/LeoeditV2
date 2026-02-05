@@ -1,0 +1,255 @@
+/* ===== API KEY DIALOG ===== */
+.apikey-dialog {
+    width: 450px;
+    max-width: 90vw;
+}
+
+.apikey-dialog .dialog-body {
+    padding: 20px;
+}
+
+.apikey-info {
+    margin: 0 0 16px 0;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.apikey-link {
+    color: #007acc;
+    text-decoration: none;
+}
+
+.apikey-link:hover {
+    text-decoration: underline;
+}
+
+.apikey-status {
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.apikey-status.has-key {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.apikey-status.no-key {
+    background: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffcc80;
+}
+
+.apikey-current {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 16px;
+    font-family: monospace;
+    word-break: break-all;  
+}
+
+.apikey-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.apikey-input-group label {
+    font-weight: 500;
+    color: #555;
+    font-size: 14px;
+}
+
+.apikey-input-group input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+.apikey-input-group input:focus {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.15);
+}
+
+.apikey-toggle {
+    position: absolute;
+    right: 30px;
+    margin-top: -32px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    opacity: 0.6;
+}
+
+.apikey-toggle:hover {
+    opacity: 1;
+}
+
+.dialog-footer {
+  display: flex;        /* Enable flexbox */
+  justify-content: center; /* Center horizontally */
+  gap: 10px;            /* Space between buttons */
+  padding: 10px;        /* Fix padding syntax */
+}
+
+/* ===== FONT DIALOG ===== */
+.font-dialog-new {
+  width: 700px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.font-dialog-body {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.font-list {
+  width: 200px;
+  max-height: 350px;
+  overflow-y: auto;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  background: #1e1e1e;
+}
+
+.font-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #ccc;
+  border-bottom: 1px solid #3c3c3c;
+  transition: background 0.15s;
+}
+
+.font-item:last-child {
+  border-bottom: none;
+}
+
+.font-item:hover {
+  background: #2a2d2e;
+}
+
+.font-item.selected {
+  background: #094771;
+  color: white;
+}
+
+.font-preview-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.font-size-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.font-size-bar label {
+  color: #ccc;
+  font-weight: 500;
+  margin-right: 5px;
+}
+
+.size-btn {
+  padding: 6px 12px;
+  border: 1px solid #3c3c3c;
+  background: #2d2d2d;
+  color: #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.size-btn:hover {
+  background: #3c3c3c;
+}
+
+.size-btn.active {
+  background: #094771;
+  border-color: #094771;
+  color: white;
+}
+
+.font-preview-large {
+  flex: 1;
+  padding: 15px;
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  color: #d4d4d4;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.preview-line {
+  margin-bottom: 8px;
+}
+
+.preview-code {
+  margin-top: 15px;
+  padding: 12px;
+  background: #252526;
+  border-radius: 4px;
+  white-space: pre;
+  font-family: inherit;
+}
+
+.dialog-close {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.dialog-close:hover {
+  color: white;
+}
+
+.btn {
+  padding: 8px 20px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: #007acc;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0098ff;
+}
+
+.btn-secondary {
+  background: #3c3c3c;
+  color: #ccc;
+}
+
+.btn-secondary:hover {
+  background: #4c4c4c;
+}

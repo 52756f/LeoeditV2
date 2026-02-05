@@ -1,0 +1,170 @@
+/* ===== SPLITVIEW CONTAINER ===== */
+.splitview-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+}
+
+/* ===== SPLITVIEW TOP TOOLBAR ===== */
+.splitview-toolbar {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: #f0f0f0;
+    border-bottom: 1px solid #e1e4e8;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.splitview-toggle-btn {
+    background: none;
+    border: 1px solid #d0d0d0;
+    border-radius: 3px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #586069;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.splitview-toggle-btn:hover {
+    background: #e0e0e0;
+    color: #000000;
+}
+
+.splitview-orientation-label {
+    font-size: 11px;
+    color: #586069;
+}
+
+/* ===== SPLITVIEW PANES AREA ===== */
+.splitview-panes {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Vertikal = nebeneinander */
+.splitview-vertical .splitview-panes {
+    flex-direction: row;
+}
+
+/* Horizontal = übereinander */
+.splitview-horizontal .splitview-panes {
+    flex-direction: column;
+}
+
+/* ===== INDIVIDUAL PANE ===== */
+.splitview-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.splitview-pane-focused .splitview-pane-toolbar {
+    background: #e8f0fe;
+    border-bottom-color: #0078d4;
+}
+
+/* ===== PANE TOOLBAR ===== */
+.splitview-pane-toolbar {
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    background: #f6f8fa;
+    border-bottom: 1px solid #e1e4e8;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.splitview-pane-filename {
+    font-size: 11px;
+    color: #586069;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.splitview-pane-open-btn {
+    background: none;
+    border: 1px solid #d0d0d0;
+    border-radius: 3px;
+    padding: 1px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #586069;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.splitview-pane-open-btn:hover {
+    background: #e0e0e0;
+    color: #000000;
+}
+
+/* ===== PANE EDITOR AREA ===== */
+.splitview-pane-editor {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.splitview-pane-editor .cm-editor {
+    height: 100%;
+}
+
+/* ===== DIVIDER ===== */
+.splitview-divider {
+    flex-shrink: 0;
+    background: #e1e4e8;
+    transition: background 0.15s;
+}
+
+.splitview-divider:hover,
+.splitview-divider:active {
+    background: #0078d4;
+}
+
+/* Während des Resize: Text-Selektion verhindern */
+body.splitview-resizing {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body.splitview-resizing .cm-editor {
+    pointer-events: none;
+}
+
+.splitview-vertical .splitview-divider {
+    width: 3px;
+    cursor: col-resize;
+}
+
+.splitview-horizontal .splitview-divider {
+    height: 3px;
+    cursor: row-resize;
+}
+
+/* ===== DRAG-OVER FEEDBACK ===== */
+.splitview-pane-dragover {
+    outline: 2px dashed #0078d4;
+    outline-offset: -2px;
+}
+
+.splitview-pane-dragover .splitview-pane-editor {
+    opacity: 0.7;
+}
