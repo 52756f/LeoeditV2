@@ -144,3 +144,51 @@
     white-space: nowrap;
     line-height: 1.4;
 }
+
+/* ===== CONTEXT MENU (shared by FileExplorer & ProjectExplorer) ===== */
+.explorer-context-menu {
+    position: fixed;
+    background: #252526;
+    border: 1px solid #454545;
+    border-radius: 4px;
+    padding: 4px 0;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    color: #cccccc;
+}
+
+.explorer-context-menu-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.explorer-context-menu-item:hover {
+    background: #094771;
+}
+
+.explorer-context-menu-divider {
+    height: 1px;
+    background: #454545;
+    margin: 4px 0;
+}
+
+/* Inline rename input */
+.file-item-rename-input {
+    background: #1e1e1e;
+    border: 1px solid #007acc;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-family: inherit;
+    padding: 0 4px;
+    outline: none;
+    width: 100%;
+    min-width: 0;
+    line-height: 1.4;
+    border-radius: 2px;
+}

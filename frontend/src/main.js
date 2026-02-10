@@ -388,7 +388,7 @@ function updateMenuState() {
     menu.setItemEnabled('menu-close-all', hasMoreTabs);
 
     // Enable/disable edit menu items based on active editor (disabled for AI/terminal tabs)
-    const hasActiveEditor = activeTab !== null && activeTab.type !== 'ai' && activeTab.type !== 'terminal';
+    const hasActiveEditor = activeTab !== null && activeTab.type !== 'ai' && activeTab.type !== 'terminal' && activeTab.type !== 'audio';
     menu.setItemEnabled('menu-undo', hasActiveEditor);
     menu.setItemEnabled('menu-redo', hasActiveEditor);
     menu.setItemEnabled('menu-cut', hasActiveEditor);
@@ -402,7 +402,7 @@ function updateMenuState() {
 
   if (toolbar) {
     toolbar.setButtonEnabled('save-file', hasModifiedTabs);
-    const isEditorTab = activeTab !== null && activeTab.type !== 'ai' && activeTab.type !== 'terminal';
+    const isEditorTab = activeTab !== null && activeTab.type !== 'ai' && activeTab.type !== 'terminal' && activeTab.type !== 'audio';
     toolbar.setButtonEnabled('undo', isEditorTab);
     toolbar.setButtonEnabled('redo', isEditorTab);
   }
@@ -558,6 +558,14 @@ async function openFileByPath(filepath, lineNumber = null) {
       }
       const dataUri = `data:${binary.mimeType};base64,${binary.data}`;
       tabView.createNewTab(name, dataUri, filepath, 'pdf');
+    } else if (type === 'audio') {
+      const binary = await ReadBinaryFile(filepath);
+      if (binary.error) {
+        console.error('Audio konnte nicht geladen werden:', binary.error);
+        return;
+      }
+      const dataUri = `data:${binary.mimeType};base64,${binary.data}`;
+      tabView.createNewTab(name, dataUri, filepath, 'audio');
     } else {
       const fileData = await ReadTextFile(filepath);
       if (fileData.error) {
@@ -609,6 +617,15 @@ async function openFileDialog() {
       }
       const dataUri = `data:${binary.mimeType};base64,${binary.data}`;
       tabView.createNewTab(name, dataUri, filename, 'pdf');
+    } else if (type === 'audio') {
+      // Audio-Datei als Binärdatei laden
+      const binary = await ReadBinaryFile(filename);
+      if (binary.error) {
+        alert('Audio konnte nicht geladen werden: ' + binary.error);
+        return false;
+      }
+      const dataUri = `data:${binary.mimeType};base64,${binary.data}`;
+      tabView.createNewTab(name, dataUri, filename, 'audio');
     } else {
       tabView.createNewTab(name, fileData.content, filename, type);
     }
@@ -634,7 +651,7 @@ async function saveCurrentTab() {
   }
 
   // Neue Datei ohne Pfad → "Speichern unter"-Dialog
-  if (!activeTab.path) {
+  if (!activeTab.path || activeTab.path.toLowerCase().endsWith('unbenannt.txt')) {
     return await saveAsCurrentTab();
   }
 
@@ -711,8 +728,8 @@ async function openFileForSplitPane(splitView, paneIndex) {
     const type = getFileType(filename);
     const name = getFilenameFromPath(filename) || APP_CONFIG.DEFAULT_TAB_NAME;
 
-    if (type === 'image' || type === 'pdf') {
-      alert('Bilder und PDFs können nicht in Split-Panes geöffnet werden.');
+    if (type === 'image' || type === 'pdf' || type === 'audio') {
+      alert('Bilder, PDFs und Audio können nicht in Split-Panes geöffnet werden.');
       return false;
     }
 
@@ -730,7 +747,7 @@ async function openFileForSplitPaneByPath(splitView, paneIndex, filepath) {
     const type = getFileType(filepath);
     const name = getFilenameFromPath(filepath) || APP_CONFIG.DEFAULT_TAB_NAME;
 
-    if (type === 'image' || type === 'pdf') {
+    if (type === 'image' || type === 'pdf' || type === 'audio') {
       return;
     }
 

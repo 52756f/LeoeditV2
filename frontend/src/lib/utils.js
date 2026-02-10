@@ -106,6 +106,7 @@ export function getFileType(filename) {
     'class': 'java',
     'jar': 'java',
     'cpp': 'cpp',
+    'vala': 'cpp',
     'cc': 'cpp',
     'cxx': 'cpp',
     'c++': 'cpp',

@@ -73,7 +73,13 @@ func (a *App) SaveFileUnder(jsonInput string) SaveResult {
 		return SaveResult{Success: false, Message: "Abgebrochen"}
 	}
 
-	if err := os.WriteFile(filename, []byte(req.Content), 0644); err != nil {
+	// Bestehende Dateirechte auslesen (falls Datei existiert).
+	fileMode := os.FileMode(0644)
+	if info, err := os.Stat(filename); err == nil {
+		fileMode = info.Mode()
+	}
+
+	if err := os.WriteFile(filename, []byte(req.Content), fileMode); err != nil {
 		return SaveResult{Success: false, Message: err.Error()}
 	}
 
@@ -136,11 +142,18 @@ func (a *App) SaveFile(content string, filename string) error {
 		return fmt.Errorf("Ordner Schreiben fehlgeschlagen: %w", err)
 	}
 
+	// Bestehende Dateirechte auslesen (falls Datei existiert).
+	// Standard: 0644 für neue Dateien.
+	fileMode := os.FileMode(0644)
+	if info, err := os.Stat(filename); err == nil {
+		fileMode = info.Mode()
+	}
+
 	// Atomares Schreiben: Erst in eine temporäre Datei schreiben, dann umbenennen.
 	// Das verhindert Datenverlust, falls der Schreibvorgang unterbrochen wird
 	// (z.B. Stromausfall) — die Originaldatei bleibt intakt.
 	tempFile := filename + ".tmp"
-	if err := os.WriteFile(tempFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(tempFile, []byte(content), fileMode); err != nil {
 		os.Remove(tempFile) // Cleanup failed temp file
 		return fmt.Errorf("Schreiben fehlgeschlagen: %w", err)
 	}
@@ -217,6 +230,36 @@ func detectMimeType(data []byte) (string, bool) {
 		if strings.Contains(header, "<svg") || (strings.Contains(header, "<?xml") && strings.Contains(header, "svg")) {
 			return "image/svg+xml", true
 		}
+	}
+
+	// Audio-Formate
+	// MP3: Beginnt mit ID3-Tag oder MPEG-Sync-Wort (0xFF 0xFB/0xF3/0xF2)
+	if len(data) >= 3 && data[0] == 0x49 && data[1] == 0x44 && data[2] == 0x33 {
+		return "audio/mpeg", false
+	}
+	if len(data) >= 2 && data[0] == 0xFF && (data[1]&0xE0) == 0xE0 {
+		return "audio/mpeg", false
+	}
+	// WAV: RIFF....WAVE
+	if len(data) >= 12 && data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
+		data[8] == 0x57 && data[9] == 0x41 && data[10] == 0x56 && data[11] == 0x45 {
+		return "audio/wav", false
+	}
+	// OGG: OggS
+	if data[0] == 0x4F && data[1] == 0x67 && data[2] == 0x67 && data[3] == 0x53 {
+		return "audio/ogg", false
+	}
+	// FLAC: fLaC
+	if data[0] == 0x66 && data[1] == 0x4C && data[2] == 0x61 && data[3] == 0x43 {
+		return "audio/flac", false
+	}
+	// AAC: ADTS-Header
+	if len(data) >= 2 && data[0] == 0xFF && (data[1]&0xF0) == 0xF0 && (data[1]&0x06) == 0x00 {
+		return "audio/aac", false
+	}
+	// M4A/MP4: ....ftyp
+	if len(data) >= 8 && data[4] == 0x66 && data[5] == 0x74 && data[6] == 0x79 && data[7] == 0x70 {
+		return "audio/mp4", false
 	}
 
 	return "application/octet-stream", false

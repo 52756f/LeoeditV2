@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -106,4 +107,53 @@ func (a *App) GetHomeDirectory() string {
 		return "/"
 	}
 	return home
+}
+
+// RenameFile benennt eine Datei oder einen Ordner um.
+func (a *App) RenameFile(oldPath, newPath string) error {
+	if oldPath == "" || newPath == "" {
+		return fmt.Errorf("Pfad darf nicht leer sein")
+	}
+
+	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
+		return fmt.Errorf("Quelle existiert nicht: %s", oldPath)
+	}
+
+	if _, err := os.Stat(newPath); err == nil {
+		return fmt.Errorf("Ziel existiert bereits: %s", filepath.Base(newPath))
+	}
+
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return fmt.Errorf("Umbenennen fehlgeschlagen: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteFile löscht eine Datei oder einen Ordner (inkl. Inhalt).
+func (a *App) DeleteFile(path string) error {
+	if path == "" {
+		return fmt.Errorf("Pfad darf nicht leer sein")
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("Ungültiger Pfad: %w", err)
+	}
+
+	// Sicherheitscheck: Root- und Home-Verzeichnis nicht löschen
+	home := a.GetHomeDirectory()
+	if absPath == "/" || absPath == home {
+		return fmt.Errorf("Dieses Verzeichnis darf nicht gelöscht werden")
+	}
+
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		return fmt.Errorf("Datei existiert nicht: %s", absPath)
+	}
+
+	if err := os.RemoveAll(absPath); err != nil {
+		return fmt.Errorf("Löschen fehlgeschlagen: %w", err)
+	}
+
+	return nil
 }

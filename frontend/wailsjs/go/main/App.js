@@ -10,6 +10,10 @@ export function CreateProject(arg1, arg2) {
   return window['go']['main']['App']['CreateProject'](arg1, arg2);
 }
 
+export function DeleteFile(arg1) {
+  return window['go']['main']['App']['DeleteFile'](arg1);
+}
+
 export function GetEditorSettings() {
   return window['go']['main']['App']['GetEditorSettings']();
 }
@@ -60,6 +64,10 @@ export function ReadBinaryFile(arg1) {
 
 export function ReadTextFile(arg1) {
   return window['go']['main']['App']['ReadTextFile'](arg1);
+}
+
+export function RenameFile(arg1, arg2) {
+  return window['go']['main']['App']['RenameFile'](arg1, arg2);
 }
 
 export function ResizeTerminal(arg1, arg2, arg3) {

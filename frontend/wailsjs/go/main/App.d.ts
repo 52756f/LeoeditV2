@@ -6,6 +6,8 @@ export function CheckProjectExists(arg1:string):Promise<boolean>;
 
 export function CreateProject(arg1:string,arg2:string):Promise<main.ProjectConfig>;
 
+export function DeleteFile(arg1:string):Promise<void>;
+
 export function GetEditorSettings():Promise<main.EditorSettings>;
 
 export function GetHomeDirectory():Promise<string>;
@@ -31,6 +33,8 @@ export function QueryOpenRouter(arg1:string,arg2:string):Promise<void>;
 export function ReadBinaryFile(arg1:string):Promise<main.BinaryFileResult>;
 
 export function ReadTextFile(arg1:string):Promise<main.FileResult>;
+
+export function RenameFile(arg1:string,arg2:string):Promise<void>;
 
 export function ResizeTerminal(arg1:string,arg2:number,arg3:number):Promise<void>;
 

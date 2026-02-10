@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -22,6 +23,7 @@ type App struct {
 	initialFiles []string
 	configPath   string
 	Config       AppConfig
+	listener     net.Listener
 }
 
 // NewApp creates a new App application struct
@@ -48,6 +50,13 @@ func (a *App) GetStartupFiles() []string {
 // benötigt wird (z.B. Dialoge öffnen, Events senden).
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.startSocketListener()
+}
+
+// shutdown wird von Wails beim Beenden der App aufgerufen.
+// Räumt den Socket-Listener und die Socket-Datei auf.
+func (a *App) shutdown(ctx context.Context) {
+	a.stopSocketListener()
 }
 
 // domReady wird aufgerufen, sobald das Frontend (HTML/JS) vollständig geladen ist.

@@ -17,6 +17,7 @@ import (
 
 // Embed-Direktiven: Bettet Dateien zur Compile-Zeit in die Go-Binary ein,
 // sodass die App als einzelne ausführbare Datei verteilt werden kann.
+//
 //go:embed build/appicon.png
 var icon []byte
 
@@ -34,13 +35,22 @@ func main() {
 		}
 	}
 
+	// Dateipfade aus CLI-Argumenten sammeln
+	files := os.Args[1:]
+
+	// Single-Instance-Prüfung: Versuche Dateien an eine bereits laufende
+	// Instanz zu senden. Falls erfolgreich, beendet sich diese Instanz.
+	if tryConnectExisting(files) {
+		os.Exit(0)
+	}
+
 	// App-Instanz erstellen (definiert in app.go)
 	app := NewApp()
 
 	// Falls Dateipfade per Kommandozeile übergeben wurden (z.B. "leoedit datei.txt"),
 	// werden diese gespeichert und beim Start im Frontend geöffnet.
-	if len(os.Args) > 1 {
-		app.SetInitialFiles(os.Args[1:])
+	if len(files) > 0 {
+		app.SetInitialFiles(files)
 	}
 
 	// Wails-Anwendung konfigurieren und starten.
@@ -71,6 +81,7 @@ func main() {
 		},
 		OnStartup:  app.startup,
 		OnDomReady: app.domReady,
+		OnShutdown: app.shutdown,
 		Bind: []interface{}{
 			app,
 		},

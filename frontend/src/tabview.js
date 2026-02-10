@@ -274,6 +274,16 @@ export class TabView {
             wrapper.innerHTML = `
                 <embed src="${tab.content}" type="application/pdf" class="loaded-pdf">
             `;
+        } else if (tab.type === 'audio') {
+            // Audio player — content is a data URI
+            wrapper.classList.add('audio-player');
+            wrapper.innerHTML = `
+                <div class="audio-container">
+                    <div class="audio-icon">&#9835;</div>
+                    <div class="audio-title">${escapeHtml(tab.title)}</div>
+                    <audio controls autoplay src="${tab.content}" class="loaded-audio"></audio>
+                </div>
+            `;
         } else {
             // Code editor
             const editor = new CodeEditor(wrapper, tab, (tabId, content) => {
@@ -331,8 +341,8 @@ export class TabView {
 
         const tab = this.tabs[tabIndex];
 
-        // Bei KI-/Terminal-Tabs keine Warnung (kein speicherbarer Inhalt)
-        if (tab.type !== 'ai' && tab.type !== 'terminal' && tab.isModified) {
+        // Bei KI-/Terminal-/Audio-Tabs keine Warnung (kein speicherbarer Inhalt)
+        if (tab.type !== 'ai' && tab.type !== 'terminal' && tab.type !== 'audio' && tab.isModified) {
             if (!confirm(`"${tab.title}" has unsaved changes. Close anyway?`)) {
                 return false;
             }

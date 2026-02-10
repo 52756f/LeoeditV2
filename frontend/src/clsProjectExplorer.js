@@ -6,7 +6,9 @@ import {
     OpenProject,
     SelectProjectFolder,
     CheckProjectExists,
-    ListProjectDirectory
+    ListProjectDirectory,
+    RenameFile,
+    DeleteFile
 } from '../wailsjs/go/main/App.js';
 
 const ICON_FOLDER = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#f6d32d" stroke="#f6d32d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>';
@@ -29,8 +31,15 @@ export class ProjectExplorer {
         this.project = null;        // Aktuelles ProjectConfig
         this.currentPath = '';      // Aktuelles Verzeichnis im Projekt
         this.entries = [];
+        this.contextMenu = null;
+
+        this._boundHideContext = () => this.hideContextMenu();
+        this._boundEscHandler = (e) => { if (e.key === 'Escape') this.hideContextMenu(); };
 
         this.buildDOM();
+
+        document.addEventListener('click', this._boundHideContext);
+        document.addEventListener('keydown', this._boundEscHandler);
     }
 
     buildDOM() {
@@ -255,6 +264,15 @@ export class ProjectExplorer {
                 }
             });
 
+            // Right-click: Kontextmenü
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.listContainer.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+                this.showContextMenu(e.clientX, e.clientY, entry, item);
+            });
+
             this.listContainer.appendChild(item);
         }
     }
@@ -294,5 +312,118 @@ export class ProjectExplorer {
 
     getProject() {
         return this.project;
+    }
+
+    // ===== Kontextmenü =====
+
+    showContextMenu(x, y, entry, itemEl) {
+        this.hideContextMenu();
+
+        const menu = document.createElement('div');
+        menu.className = 'explorer-context-menu';
+
+        const items = [
+            { label: 'Umbenennen', action: () => this.startRename(entry, itemEl) },
+            { label: 'Löschen', action: () => this.confirmDelete(entry) },
+        ];
+
+        items.forEach(({ label, action }) => {
+            const el = document.createElement('div');
+            el.className = 'explorer-context-menu-item';
+            el.textContent = label;
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.hideContextMenu();
+                action();
+            });
+            menu.appendChild(el);
+        });
+
+        document.body.appendChild(menu);
+        this.contextMenu = menu;
+
+        // Viewport-Korrektur
+        const rect = menu.getBoundingClientRect();
+        menu.style.left = (x + rect.width > window.innerWidth ? window.innerWidth - rect.width - 8 : x) + 'px';
+        menu.style.top = (y + rect.height > window.innerHeight ? window.innerHeight - rect.height - 8 : y) + 'px';
+    }
+
+    hideContextMenu() {
+        if (this.contextMenu && this.contextMenu.parentNode) {
+            this.contextMenu.parentNode.removeChild(this.contextMenu);
+        }
+        this.contextMenu = null;
+    }
+
+    // ===== Umbenennen (Inline) =====
+
+    startRename(entry, itemEl) {
+        const nameSpan = itemEl.querySelector('.file-item-name');
+        if (!nameSpan) return;
+
+        const oldName = entry.name;
+        const input = document.createElement('input');
+        input.className = 'file-item-rename-input';
+        input.value = oldName;
+
+        // Dateiname ohne Extension vorselektieren
+        const dotIndex = oldName.lastIndexOf('.');
+        const selectEnd = (!entry.isDirectory && dotIndex > 0) ? dotIndex : oldName.length;
+
+        nameSpan.replaceWith(input);
+        input.focus();
+        input.setSelectionRange(0, selectEnd);
+
+        const commit = async () => {
+            const newName = input.value.trim();
+            if (!newName || newName === oldName) {
+                input.replaceWith(nameSpan);
+                return;
+            }
+
+            const dir = entry.path.substring(0, entry.path.length - oldName.length);
+            const newPath = dir + newName;
+
+            try {
+                await RenameFile(entry.path, newPath);
+                await this.navigate(this.currentPath);
+            } catch (err) {
+                alert('Umbenennen fehlgeschlagen: ' + err);
+                input.replaceWith(nameSpan);
+            }
+        };
+
+        let committed = false;
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                committed = true;
+                commit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                committed = true;
+                input.replaceWith(nameSpan);
+            }
+        });
+        input.addEventListener('blur', () => {
+            if (!committed) {
+                committed = true;
+                commit();
+            }
+        });
+    }
+
+    // ===== Löschen =====
+
+    async confirmDelete(entry) {
+        const type = entry.isDirectory ? 'Ordner' : 'Datei';
+        if (!confirm(`${type} "${entry.name}" wirklich löschen?`)) return;
+
+        try {
+            await DeleteFile(entry.path);
+            await this.navigate(this.currentPath);
+        } catch (err) {
+            alert('Löschen fehlgeschlagen: ' + err);
+        }
     }
 }
