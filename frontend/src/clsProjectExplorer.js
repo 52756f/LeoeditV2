@@ -8,7 +8,9 @@ import {
     CheckProjectExists,
     ListProjectDirectory,
     RenameFile,
-    DeleteFile
+    DeleteFile,
+    GetRecentProjects,
+    RemoveRecentProject
 } from '../wailsjs/go/main/App.js';
 
 const ICON_FOLDER = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#f6d32d" stroke="#f6d32d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>';
@@ -72,9 +74,20 @@ export class ProjectExplorer {
         this.noProjectView = document.createElement('div');
         this.noProjectView.className = 'project-explorer-no-project';
 
+        // Resizer zwischen Dateiliste und Outliner
+        this.outlinerResizer = document.createElement('div');
+        this.outlinerResizer.className = 'outliner-resizer';
+        this.setupResizer();
+
+        // Outliner-Container
+        this.outlinerContainer = document.createElement('div');
+        this.outlinerContainer.id = 'outliner';
+
         this.panel.appendChild(this.header);
         this.panel.appendChild(this.listContainer);
         this.panel.appendChild(this.noProjectView);
+        this.panel.appendChild(this.outlinerResizer);
+        this.panel.appendChild(this.outlinerContainer);
         this.container.appendChild(this.panel);
         this.container.style.display = 'none';
 
@@ -94,10 +107,76 @@ export class ProjectExplorer {
                 <button class="project-btn project-btn-open">Projekt öffnen</button>
                 <button class="project-btn project-btn-new">Neues Projekt</button>
             </div>
+            <div class="recent-projects"></div>
         `;
 
         this.noProjectView.querySelector('.project-btn-open').addEventListener('click', () => this.openProjectDialog());
         this.noProjectView.querySelector('.project-btn-new').addEventListener('click', () => this.createProjectDialog());
+
+        this.loadRecentProjects();
+    }
+
+    async loadRecentProjects() {
+        try {
+            const projects = await GetRecentProjects();
+            const container = this.noProjectView.querySelector('.recent-projects');
+            if (!container || !projects || projects.length === 0) return;
+
+            container.innerHTML = '';
+
+            const divider = document.createElement('div');
+            divider.className = 'recent-projects-divider';
+            divider.textContent = 'Letzte Projekte';
+            container.appendChild(divider);
+
+            const list = document.createElement('div');
+            list.className = 'recent-projects-list';
+
+            for (const project of projects) {
+                const item = document.createElement('div');
+                item.className = 'recent-project-item';
+
+                const info = document.createElement('div');
+                info.className = 'recent-project-info';
+                info.addEventListener('click', () => this.openProject(project.path));
+
+                const nameRow = document.createElement('div');
+                nameRow.className = 'recent-project-name';
+                nameRow.innerHTML = ICON_FOLDER + ' ' + this.escapeHtml(project.name);
+
+                const pathRow = document.createElement('div');
+                pathRow.className = 'recent-project-path';
+                pathRow.textContent = project.path;
+                pathRow.title = project.path;
+
+                info.appendChild(nameRow);
+                info.appendChild(pathRow);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'recent-project-remove';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.title = 'Aus Liste entfernen';
+                removeBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await RemoveRecentProject(project.path);
+                    this.loadRecentProjects();
+                });
+
+                item.appendChild(info);
+                item.appendChild(removeBtn);
+                list.appendChild(item);
+            }
+
+            container.appendChild(list);
+        } catch (err) {
+            console.error('Letzte Projekte laden fehlgeschlagen:', err);
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     async openProjectDialog() {
@@ -312,6 +391,47 @@ export class ProjectExplorer {
 
     getProject() {
         return this.project;
+    }
+
+    // ===== Outliner =====
+
+    setOutliner(outlinerInstance) {
+        this.outliner = outlinerInstance;
+    }
+
+    updateOutliner(editor) {
+        if (!this.outliner) return;
+        this.outliner.setEditor(editor);
+        this.outliner.refreshOutline();
+    }
+
+    setupResizer() {
+        let startY = 0;
+        let startListHeight = 0;
+
+        const onMouseMove = (e) => {
+            const delta = e.clientY - startY;
+            const newHeight = Math.max(50, startListHeight + delta);
+            this.listContainer.style.height = newHeight + 'px';
+            this.listContainer.style.flex = 'none';
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        this.outlinerResizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startY = e.clientY;
+            startListHeight = this.listContainer.getBoundingClientRect().height;
+            document.body.style.cursor = 'ns-resize';
+            document.body.style.userSelect = 'none';
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
     }
 
     // ===== Kontextmenü =====

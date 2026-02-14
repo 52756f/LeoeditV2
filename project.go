@@ -26,6 +26,49 @@ type ProjectConfig struct {
 const projectConfigFile = ".leoedit.json"
 const projectConfigVersion = "1.0"
 
+// GetRecentProjects gibt die Liste der kürzlich geöffneten Projekte zurück.
+func (a *App) GetRecentProjects() []RecentProject {
+	if a.Config.RecentProjects == nil {
+		return []RecentProject{}
+	}
+	return a.Config.RecentProjects
+}
+
+// AddRecentProject fügt ein Projekt zur Liste der kürzlich geöffneten Projekte hinzu.
+// Duplikate (nach Pfad) werden vermieden, max 10 Einträge, neueste oben.
+func (a *App) AddRecentProject(name, path string) {
+	// Bestehenden Eintrag mit gleichem Pfad entfernen
+	projects := make([]RecentProject, 0, len(a.Config.RecentProjects))
+	for _, p := range a.Config.RecentProjects {
+		if p.Path != path {
+			projects = append(projects, p)
+		}
+	}
+
+	// Neuen Eintrag am Anfang einfügen
+	projects = append([]RecentProject{{Name: name, Path: path}}, projects...)
+
+	// Max 10 Einträge
+	if len(projects) > 10 {
+		projects = projects[:10]
+	}
+
+	a.Config.RecentProjects = projects
+	a.saveConfig()
+}
+
+// RemoveRecentProject entfernt ein Projekt aus der Liste der kürzlich geöffneten Projekte.
+func (a *App) RemoveRecentProject(path string) {
+	projects := make([]RecentProject, 0, len(a.Config.RecentProjects))
+	for _, p := range a.Config.RecentProjects {
+		if p.Path != path {
+			projects = append(projects, p)
+		}
+	}
+	a.Config.RecentProjects = projects
+	a.saveConfig()
+}
+
 // CreateProject erstellt eine neue .leoedit.json im angegebenen Ordner.
 func (a *App) CreateProject(folderPath, projectName string) (*ProjectConfig, error) {
 	// Pfad normalisieren
@@ -64,6 +107,8 @@ func (a *App) CreateProject(folderPath, projectName string) (*ProjectConfig, err
 		return nil, err
 	}
 
+	a.AddRecentProject(config.Name, config.RootPath)
+
 	return config, nil
 }
 
@@ -98,6 +143,8 @@ func (a *App) OpenProject(folderPath string) (*ProjectConfig, error) {
 	if err := a.saveProjectConfig(configPath, &config); err != nil {
 		return nil, err
 	}
+
+	a.AddRecentProject(config.Name, config.RootPath)
 
 	return &config, nil
 }

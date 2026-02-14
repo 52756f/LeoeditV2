@@ -10,15 +10,22 @@ import (
 	"path/filepath"
 )
 
+// RecentProject speichert Name und Pfad eines kürzlich geöffneten Projekts.
+type RecentProject struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
 // AppConfig enthält alle Einstellungen, die zwischen Sitzungen gespeichert werden.
 // Der OpenRouterApiKey wird verschlüsselt gespeichert (siehe encryption.go).
 type AppConfig struct {
-	RecentFiles      []string `json:"recent_files"`
-	LastDirectory    string   `json:"last_directory"`
-	MaxRecentFiles   int      `json:"max_recent_files"`
-	EditorFont       string   `json:"editor_font"`
-	EditorFontSize   int      `json:"editor_font_size"`
-	OpenRouterApiKey string   `json:"openrouter_api_key"` // AES-GCM verschlüsselt
+	RecentFiles      []string        `json:"recent_files"`
+	LastDirectory    string          `json:"last_directory"`
+	MaxRecentFiles   int             `json:"max_recent_files"`
+	EditorFont       string          `json:"editor_font"`
+	EditorFontSize   int             `json:"editor_font_size"`
+	OpenRouterApiKey string          `json:"openrouter_api_key"` // AES-GCM verschlüsselt
+	RecentProjects   []RecentProject `json:"recent_projects"`
 }
 
 // getConfigPath gibt den Pfad zur Konfigurationsdatei zurück

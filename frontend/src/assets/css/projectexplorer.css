@@ -149,3 +149,110 @@
 .project-btn-new:hover {
     background: #475569;
 }
+
+/* ===== RECENT PROJECTS ===== */
+.recent-projects {
+    width: 100%;
+    margin-top: 16px;
+    text-align: left;
+}
+
+.recent-projects-divider {
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0 4px 8px;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 4px;
+}
+
+.recent-projects-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.recent-projects-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.recent-projects-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.recent-projects-list::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+}
+
+.recent-project-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.recent-project-item:hover {
+    background: #334155;
+}
+
+.recent-project-info {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.recent-project-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #e2e8f0;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-project-name svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.recent-project-path {
+    color: #64748b;
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 22px;
+    margin-top: 1px;
+}
+
+.recent-project-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #64748b;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.recent-project-item:hover .recent-project-remove {
+    opacity: 1;
+}
+
+.recent-project-remove:hover {
+    background: #475569;
+    color: #e2e8f0;
+}
