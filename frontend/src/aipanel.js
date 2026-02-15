@@ -257,11 +257,12 @@ Fähigkeiten: „Erstelle mir eine Liste deiner Kernkompetenzen. Kannst du Bilde
         prompt = this.optimizeAIPrompt(prompt); // prompt optimieren vor senden
 
         try {
-            await QueryOpenRouter(this.currentModel, prompt, this.promptInput.value, '');
+            await QueryOpenRouter(this.currentModel, prompt);
         } catch (error) {
             this.logger.error('Error sending prompt:', error);
+            const errorMsg = error?.message || String(error);
+            this.addMessageToHistory('assistant', `Fehler: ${errorMsg}`, '⚠️');
         } finally {
-            // Code to be executed regardless of whether an error occurred or not
             this.setWorkingState(false);
             this.promptInput.value = '';
             this.unregisterStreamEvents();
