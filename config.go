@@ -25,6 +25,7 @@ type AppConfig struct {
 	EditorFont       string          `json:"editor_font"`
 	EditorFontSize   int             `json:"editor_font_size"`
 	OpenRouterApiKey string          `json:"openrouter_api_key"` // AES-GCM verschlüsselt
+	GeminiApiKey     string          `json:"gemini_api_key"`     // AES-GCM verschlüsselt
 	RecentProjects   []RecentProject `json:"recent_projects"`
 }
 

@@ -6,7 +6,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
+	"os"
+	"os/exec" // Import the os/exec package
+	"strings" // Import the strings package for potential trimming
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -23,7 +25,40 @@ type App struct {
 	initialFiles []string
 	configPath   string
 	Config       AppConfig
-	listener     net.Listener
+}
+
+// AskGeminiForSuggestions provides coding suggestions using Gemini.
+func (a *App) AskGeminiForSuggestions(selectedText string, fileType string, fullContent string) (string, error) {
+	// 1. Retrieve the decrypted Gemini API key
+	apiKey := a.GetGeminiApiKey()
+	if apiKey == "" {
+		return "", fmt.Errorf("Gemini API Key is not configured. Please set it in Preferences.")
+	}
+
+	// Restore original detailed prompt
+	prompt := fmt.Sprintf("Analyze the following %s code. Provide suggestions for code completion, refactoring, or bug fixes. If a change is suggested, output only the modified code block to replace the selected text. Do not include any conversational text or explanations, just the code block. If no changes are needed or cannot be made, return the original selected code.\n\nFull context:\n```%s\n%s\n```\n\nSelected code to improve:\n```%s\n%s\n```\n\nSuggestions:", fileType, fileType, fullContent, fileType, selectedText)
+
+	// Log the prompt for debugging
+	fmt.Printf("Gemini Prompt:\n%s\n", prompt)
+
+	// 2. Execute the gemini command with proper environment
+	// Set API key as environment variable
+	cmd := exec.Command("gemini", "--prompt", prompt)
+
+	// Set API key in environment
+	cmd.Env = append(os.Environ(), fmt.Sprintf("GEMINI_API_KEY=%s", apiKey))
+
+	fmt.Printf("Executing gemini command: gemini --prompt <prompt>\n")
+
+	output, err := cmd.CombinedOutput()
+	rawOutput := string(output)
+	fmt.Printf("Gemini Command Raw Output:\n%s\n", rawOutput)
+
+	if err != nil {
+		return "", fmt.Errorf("failed to run gemini command: %w\nGemini Output: %s", err, rawOutput)
+	}
+
+	return strings.TrimSpace(rawOutput), nil
 }
 
 // NewApp creates a new App application struct
@@ -50,41 +85,22 @@ func (a *App) GetStartupFiles() []string {
 // benötigt wird (z.B. Dialoge öffnen, Events senden).
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	a.startSocketListener()
 }
 
 // shutdown wird von Wails beim Beenden der App aufgerufen.
-// Räumt den Socket-Listener und die Socket-Datei auf.
 func (a *App) shutdown(ctx context.Context) {
-	a.stopSocketListener()
 }
 
 // domReady wird aufgerufen, sobald das Frontend (HTML/JS) vollständig geladen ist.
-// Hier wird der Drag-and-Drop-Handler registriert, der Dateien vom
-// Betriebssystem entgegennimmt und an das Frontend weiterleitet.
 func (a *App) domReady(ctx context.Context) {
-	// OnFileDrop: Wails fängt Datei-Drops auf dem Fenster ab.
-	// x, y: Mausposition des Drops (hier nicht verwendet).
-	// paths: Liste der abgelegten Dateipfade.
 	runtime.OnFileDrop(ctx, func(x, y int, paths []string) {
 		fmt.Printf("Files dropped: %v\n", paths)
-
-		// Deduplizierung: Auf manchen Systemen (besonders Linux/WebKit)
-		// kann dasselbe Drop-Event mehrfach den gleichen Pfad enthalten.
 		seen := make(map[string]bool)
-		var uniquePaths []string
-
 		for _, path := range paths {
-			if _, exists := seen[path]; !exists {
+			if !seen[path] {
 				seen[path] = true
-				uniquePaths = append(uniquePaths, path)
-
-				// Jeder Pfad wird einzeln als Event an das Frontend gesendet.
-				// Das Frontend lauscht auf "file-drop" und öffnet die Datei in einem neuen Tab.
 				runtime.EventsEmit(ctx, "file-drop", path)
 			}
 		}
-
-		fmt.Printf("Unique files processed: %v\n", uniquePaths)
 	})
 }

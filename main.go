@@ -38,12 +38,6 @@ func main() {
 	// Dateipfade aus CLI-Argumenten sammeln
 	files := os.Args[1:]
 
-	// Single-Instance-Prüfung: Versuche Dateien an eine bereits laufende
-	// Instanz zu senden. Falls erfolgreich, beendet sich diese Instanz.
-	if tryConnectExisting(files) {
-		os.Exit(0)
-	}
-
 	// App-Instanz erstellen (definiert in app.go)
 	app := NewApp()
 
@@ -56,7 +50,6 @@ func main() {
 	// Wails-Anwendung konfigurieren und starten.
 	// Die wichtigsten Optionen:
 	// - AssetServer: Liefert das eingebettete Frontend aus
-	// - DragAndDrop: Ermöglicht Datei-Drop aus dem Dateimanager
 	// - Bind: Macht Go-Methoden im Frontend aufrufbar (window.go.main.App.*)
 	// - OnStartup/OnDomReady: Lifecycle-Hooks für Initialisierung
 	err := wails.Run(&options.App{

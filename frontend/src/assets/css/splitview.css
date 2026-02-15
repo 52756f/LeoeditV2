@@ -159,12 +159,3 @@ body.splitview-resizing .cm-editor {
     cursor: row-resize;
 }
 
-/* ===== DRAG-OVER FEEDBACK ===== */
-.splitview-pane-dragover {
-    outline: 2px dashed #0078d4;
-    outline-offset: -2px;
-}
-
-.splitview-pane-dragover .splitview-pane-editor {
-    opacity: 0.7;
-}

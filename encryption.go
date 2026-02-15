@@ -126,6 +126,38 @@ func decryptApiKey(encrypted string) (string, error) {
 	return string(plaintext), nil
 }
 
+// SetGeminiApiKey encrypts and saves the Gemini API key
+func (a *App) SetGeminiApiKey(apiKey string) error {
+    encrypted, err := encryptApiKey(apiKey)
+    if err != nil {
+        return fmt.Errorf("encryption failed: %v", err)
+    }
+    a.Config.GeminiApiKey = encrypted
+    return a.saveConfig()
+}
+
+// GetGeminiApiKey retrieves and decrypts the stored Gemini API key
+func (a *App) GetGeminiApiKey() string {
+    if a.Config.GeminiApiKey == "" {
+        return ""
+    }
+    decrypted, err := decryptApiKey(a.Config.GeminiApiKey)
+    if err != nil {
+        log.Printf("Failed to decrypt Gemini API key: %v", err)
+        return ""
+    }
+    return decrypted
+}
+
+// HasGeminiApiKey checks if a Gemini API key is configured
+func (a *App) HasGeminiApiKey() bool {
+    // Also check environment variable for Gemini API key
+    if os.Getenv("GEMINI_API_KEY") != "" {
+        return true
+    }
+    return a.Config.GeminiApiKey != ""
+}
+
 // SetOpenRouterApiKey encrypts and saves the API key
 func (a *App) SetOpenRouterApiKey(apiKey string) error {
 	encrypted, err := encryptApiKey(apiKey)

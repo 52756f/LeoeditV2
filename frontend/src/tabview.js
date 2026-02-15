@@ -293,6 +293,10 @@ export class TabView {
                 if (this.options.onAskAI) {
                     this.options.onAskAI(selectedText, fileType);
                 }
+            }, (selectedText, fileType) => { // New onAskGemini callback
+                if (this.options.onAskGemini) {
+                    this.options.onAskGemini(selectedText, fileType);
+                }
             });
             this.editors.set(tab.id, editor);
         }

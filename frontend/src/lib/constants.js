@@ -4,7 +4,7 @@
 // Werte unveränderlich sind (kein versehentliches Überschreiben).
 export const APP_CONFIG = {
     get NAME() { return "Leoedit V2"; },
-    get VERSION() { return "3.3.0.96"; },
+    get VERSION() { return "3.3.0.163"; },
     get HISTORY_LIMIT() { return 200; },       // Max. Undo-Schritte
     get DESCRIPTION() { return "Ein einfacher Texteditor<br>\n mit CodeMirror 6"; },
     get AUTHOR() { return "Leo Träxler"; },

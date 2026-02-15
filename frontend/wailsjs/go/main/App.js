@@ -6,6 +6,10 @@ export function AddRecentProject(arg1, arg2) {
   return window['go']['main']['App']['AddRecentProject'](arg1, arg2);
 }
 
+export function AskGeminiForSuggestions(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AskGeminiForSuggestions'](arg1, arg2, arg3);
+}
+
 export function CheckProjectExists(arg1) {
   return window['go']['main']['App']['CheckProjectExists'](arg1);
 }
@@ -22,6 +26,10 @@ export function GetEditorSettings() {
   return window['go']['main']['App']['GetEditorSettings']();
 }
 
+export function GetGeminiApiKey() {
+  return window['go']['main']['App']['GetGeminiApiKey']();
+}
+
 export function GetHomeDirectory() {
   return window['go']['main']['App']['GetHomeDirectory']();
 }
@@ -36,6 +44,10 @@ export function GetRecentProjects() {
 
 export function GetStartupFiles() {
   return window['go']['main']['App']['GetStartupFiles']();
+}
+
+export function HasGeminiApiKey() {
+  return window['go']['main']['App']['HasGeminiApiKey']();
 }
 
 export function HasOpenRouterApiKey() {
@@ -104,6 +116,10 @@ export function SelectProjectFolder() {
 
 export function SetEditorSettings(arg1, arg2) {
   return window['go']['main']['App']['SetEditorSettings'](arg1, arg2);
+}
+
+export function SetGeminiApiKey(arg1) {
+  return window['go']['main']['App']['SetGeminiApiKey'](arg1);
 }
 
 export function SetInitialFiles(arg1) {

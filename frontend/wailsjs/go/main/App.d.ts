@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function AddRecentProject(arg1:string,arg2:string):Promise<void>;
 
+export function AskGeminiForSuggestions(arg1:string,arg2:string,arg3:string):Promise<string>;
+
 export function CheckProjectExists(arg1:string):Promise<boolean>;
 
 export function CreateProject(arg1:string,arg2:string):Promise<main.ProjectConfig>;
@@ -12,6 +14,8 @@ export function DeleteFile(arg1:string):Promise<void>;
 
 export function GetEditorSettings():Promise<main.EditorSettings>;
 
+export function GetGeminiApiKey():Promise<string>;
+
 export function GetHomeDirectory():Promise<string>;
 
 export function GetOpenRouterApiKey():Promise<string>;
@@ -19,6 +23,8 @@ export function GetOpenRouterApiKey():Promise<string>;
 export function GetRecentProjects():Promise<Array<main.RecentProject>>;
 
 export function GetStartupFiles():Promise<Array<string>>;
+
+export function HasGeminiApiKey():Promise<boolean>;
 
 export function HasOpenRouterApiKey():Promise<boolean>;
 
@@ -53,6 +59,8 @@ export function SearchInDirectory(arg1:string,arg2:string,arg3:boolean):Promise<
 export function SelectProjectFolder():Promise<string>;
 
 export function SetEditorSettings(arg1:string,arg2:number):Promise<void>;
+
+export function SetGeminiApiKey(arg1:string):Promise<void>;
 
 export function SetInitialFiles(arg1:Array<string>):Promise<void>;
 

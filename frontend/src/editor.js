@@ -16,6 +16,8 @@ import {
     indentUnit,
     HighlightStyle,
     syntaxHighlighting,
+    syntaxTree,
+    foldGutter,
 } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { javascript } from '@codemirror/lang-javascript';
@@ -27,10 +29,14 @@ import { go } from '@codemirror/lang-go';
 import { java } from '@codemirror/lang-java';
 import { cpp } from '@codemirror/lang-cpp';
 import { markdown } from '@codemirror/lang-markdown';
+import { StreamLanguage } from '@codemirror/language';
+import { perl } from '@codemirror/legacy-modes/mode/perl';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { undo as cmUndo, redo as cmRedo, selectAll as cmSelectAll, indentWithTab } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import { search, openSearchPanel, gotoLine } from '@codemirror/search';
+import {linter, lintGutter, lintKeymap} from "@codemirror/lint";
+import { highlightLineField } from './clsOutliner.js';
 
 // Custom syntax highlighting - softer colors with green comments
 const customHighlightStyle = HighlightStyle.define([
@@ -58,36 +64,93 @@ const customHighlightStyle = HighlightStyle.define([
     { tag: tags.punctuation, color: "#d4d4d4" },
 ]);
 
-// fileDragExtension: Verhindert, dass CodeMirror Dateien als Text einfügt.
-// Stattdessen wird das Drag-Event an das Fenster weitergeleitet, wo es
-// vom Go-Backend (OnFileDrop) verarbeitet wird.
-const fileDragExtension = EditorView.domEventHandlers({
-    dragover(event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'copy';
-        return true;
-    },
-    drop(event) {
-        event.preventDefault();
-        return true;
+// Syntax-Linter: Nutzt die Lezer-Parser (bereits für Syntax-Highlighting aktiv)
+// um echte Syntaxfehler zu erkennen. Für JSON wird zusätzlich JSON.parse() verwendet.
+function syntaxLinter(view) {
+    const state = view.state;
+    const tree = syntaxTree(state);
+    const topName = tree.topNode.name;
+
+    // JSON: JSON.parse() liefert bessere Fehlermeldungen
+    if (topName === "JsonText") {
+        return lintJSON(state);
     }
-});
+
+    // Alle anderen Sprachen: Error-Nodes aus dem Parse-Tree sammeln
+    const diagnostics = [];
+    tree.iterate({
+        enter(node) {
+            if (diagnostics.length >= 100) return false;
+            if (node.type.isError) {
+                let from = node.from;
+                let to = node.to;
+                // Zero-width Error-Nodes um 1 Zeichen erweitern für sichtbaren Unterstrich
+                if (from === to && from < state.doc.length) {
+                    to = from + 1;
+                }
+                // Kontext aus Parent-Node für bessere Fehlermeldung
+                const parent = node.node.parent;
+                const context = parent && !parent.type.isError ? parent.name : "";
+                const message = context
+                    ? `Syntax error in ${context}`
+                    : "Syntax error";
+                diagnostics.push({
+                    from,
+                    to,
+                    message,
+                    severity: "error",
+                    source: "syntax",
+                });
+            }
+        }
+    });
+    return diagnostics;
+}
+
+// JSON-Linter: JSON.parse() für präzise Fehlermeldungen
+function lintJSON(state) {
+    const content = state.doc.toString();
+    if (!content.trim()) return [];
+    try {
+        JSON.parse(content);
+        return [];
+    } catch (e) {
+        const msg = e.message || "Invalid JSON";
+        // Position aus Fehlermeldung extrahieren ("at position 42")
+        const posMatch = msg.match(/position\s+(\d+)/i);
+        let from = posMatch ? Number(posMatch[1]) : 0;
+        from = Math.min(from, state.doc.length);
+        let to = Math.min(from + 1, state.doc.length);
+        if (from === to && from > 0) from = from - 1;
+        return [{
+            from,
+            to,
+            message: msg,
+            severity: "error",
+            source: "json",
+        }];
+    }
+}
+
 
 export class CodeEditor {
     // container: DOM-Element, in das der Editor gerendert wird
     // tab: Tab-Objekt mit Inhalt, Typ und Metadaten
     // onContentChange: Callback → wird bei jeder Textänderung aufgerufen
-    constructor(container, tab, onContentChange, onCursorChange, onAskAI) {
+    constructor(container, tab, onContentChange, onCursorChange, onAskAI, onAskGemini) {
         this.container = container;
         this.tab = tab;
         this.onContentChange = onContentChange;
         this.onCursorChange = onCursorChange;
-        this.onAskAI = onAskAI;  // Callback für "Ask AI" Kontextmenü
+        this.onAskAI = onAskAI;
+        this.onAskGemini = onAskGemini;
         this.view = null;
         this.contextMenu = null;
         // Event-Listener-Referenzen für Cleanup in destroy()
         this._boundClickHandler = null;
         this._boundKeyHandler = null;
+        this._boundDragOverHandler = null;
+        this._boundDragLeaveHandler = null;
         this.initialize();
     }
 
@@ -105,7 +168,8 @@ export class CodeEditor {
             'java': java(),
             'cpp': cpp(),
             'c': cpp(),  // C verwendet C++ Highlighting
-            'markdown': markdown()
+            'markdown': markdown(),
+            'perl': StreamLanguage.define(perl),
         };
         // Für unbekannte Typen: Plaintext (kein Syntax-Highlighting)
         // Besser als falsches JavaScript-Highlighting für Rust, Kotlin, etc.
@@ -118,6 +182,80 @@ export class CodeEditor {
     // Verhalten des Editors (Aussehen, Sprache, Tastenkürzel, Events).
     initialize() {
         this.container.innerHTML = '';
+
+        // WICHTIG: Drag & Drop Event Handler für CodeMirror
+        const dragDropExtension = EditorView.domEventHandlers({
+            // dragover: Zeigt das Plus-Zeichen wenn Dateien gezogen werden
+            dragover: (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // DAS PLUS-ZEICHEN - dropEffect = 'copy' ist entscheidend!
+                if (event.dataTransfer) {
+                    event.dataTransfer.dropEffect = 'copy';
+                    event.dataTransfer.effectAllowed = 'copy';
+                }
+                
+                // Visuelles Feedback: Container hervorheben
+                this.container.classList.add('drag-over');
+                return false;
+            },
+            
+            // dragleave: Entfernt visuelles Feedback
+            dragleave: (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Nur entfernen wenn nicht auf ein Kind-Element gezogen wird
+                const related = event.relatedTarget;
+                if (!related || !this.container.contains(related)) {
+                    this.container.classList.remove('drag-over');
+                }
+                return false;
+            },
+            
+            // dragend: Entfernt visuelles Feedback
+            dragend: (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.container.classList.remove('drag-over');
+                return false;
+            },
+            
+            // drop: Dateien werden vom Wails-Backend behandelt (app.go → file-drop Event),
+            // hier nur Text-Drops verarbeiten.
+            drop: (event) => {
+                this.container.classList.remove('drag-over');
+
+                const data = event.dataTransfer;
+                if (!data) return false;
+
+                // Dateien: preventDefault damit der Browser den Inhalt nicht einfügt,
+                // Wails-Backend übernimmt das Öffnen (app.go → file-drop Event)
+                if (data.files && data.files.length > 0) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return true;
+                }
+
+                // Text aus Drag & Drop
+                const text = data.getData('text/plain');
+                if (text) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const cursorPos = this.view?.state.selection.main.head || 0;
+                    this.view?.dispatch({
+                        changes: {
+                            from: cursorPos,
+                            insert: text
+                        }
+                    });
+                    return true;
+                }
+
+                return false;
+            }
+        });
 
         // Kontextmenü-Extension für Rechtsklick
         const contextMenuExtension = EditorView.domEventHandlers({
@@ -134,9 +272,13 @@ export class CodeEditor {
                 basicSetup,              // Standard-Features (Zeilennummern, etc.)
                 keymap.of([indentWithTab]), // Tab/Shift-Tab für Einrückung
                 drawSelection(),         // Zeichnet Cursor/Selektionen für Multi-Cursor
+                foldGutter(),            // Code-Faltung
+                lintGutter(),
+                linter(syntaxLinter, { delay: 300 }),
                 EditorState.allowMultipleSelections.of(true), // Mehrere Cursor erlauben
-                fileDragExtension,       // Verhindert Drag-Drop-Texteinfügung
                 contextMenuExtension,    // Kontextmenü für "Ask AI"
+                dragDropExtension,       // 🆕 DRAG & DROP SUPPORT!
+                highlightLineField,      // Outliner-Zeilenhighlighting
                 search({ top: true }),   // Suchleiste oben statt unten
                 indentOnInput(),         // Auto-Einrückung beim Tippen
                 bracketMatching(),       // Klammer-Matching-Hervorhebung
@@ -145,7 +287,6 @@ export class CodeEditor {
                 oneDark,                 // Dunkles Farbschema (inkl. Syntax-Farben)
                 syntaxHighlighting(customHighlightStyle), // Custom: green comments, softer colors
                 // Change-Listener: Wird bei jeder Textänderung ausgelöst.
-                // Aktualisiert das Tab-Datenmodell und benachrichtigt TabView.
                 EditorView.updateListener.of(update => {
                     if (update.docChanged) {
                         const newContent = this.view.state.doc.toString();
@@ -170,10 +311,26 @@ export class CodeEditor {
 
         // Adjust editor container
         this.container.style.height = '100%';
-        this.container.style.overflow = 'hidden';
+        this.container.style.overflow = 'auto'; // auto statt hidden für Scrollbarkeit
+        this.container.style.position = 'relative';
+        
+        // 🆕 GLOBALE DRAG OVER PREVENTION (nur für Nicht-Editor-Bereiche)
+        this._boundDragOverHandler = (e) => {
+            // Nur verhindern wenn das Ziel NICHT der Editor oder seine Kinder ist
+            if (!e.target.closest('.cm-content')) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'none';
+            }
+        };
+        
+        this._boundDragLeaveHandler = () => {
+            this.container.classList.remove('drag-over');
+        };
+        
+        document.addEventListener('dragover', this._boundDragOverHandler);
+        document.addEventListener('dragleave', this._boundDragLeaveHandler);
 
         // Klick außerhalb schließt Kontextmenü
-        // Event-Listener mit gespeicherten Referenzen für Cleanup
         this._boundClickHandler = () => this.hideContextMenu();
         this._boundKeyHandler = (e) => {
             if (e.key === 'Escape') this.hideContextMenu();
@@ -207,6 +364,7 @@ export class CodeEditor {
 
         const menuItems = [
             { label: 'AI fragen...', icon: '🤖', action: 'askAI', disabled: !selection },
+            { label: 'Gemini fragen', icon: '✨', action: 'askGemini', disabled: !selection }, // ADD this new item
             { type: 'separator' },
             { label: 'Ausschneiden', icon: '✂️', action: 'cut', shortcut: 'Ctrl+X', disabled: !selection },
             { label: 'Kopieren', icon: '📋', action: 'copy', shortcut: 'Ctrl+C', disabled: !selection },
@@ -265,24 +423,20 @@ export class CodeEditor {
 
         document.body.appendChild(this.contextMenu);
 
-        // Position anpassen wenn außerhalb des Viewports (alle Kanten)
+        // Position anpassen wenn außerhalb des Viewports
         const rect = this.contextMenu.getBoundingClientRect();
         let newLeft = x;
         let newTop = y;
 
-        // Rechter Rand
         if (rect.right > window.innerWidth) {
             newLeft = window.innerWidth - rect.width - 10;
         }
-        // Unterer Rand
         if (rect.bottom > window.innerHeight) {
             newTop = window.innerHeight - rect.height - 10;
         }
-        // Linker Rand (falls Fenster sehr klein)
         if (newLeft < 10) {
             newLeft = 10;
         }
-        // Oberer Rand
         if (newTop < 10) {
             newTop = 10;
         }
@@ -306,7 +460,12 @@ export class CodeEditor {
                     this.onAskAI(selectedText, this.tab.type);
                 }
                 break;
-            case 'cut':
+            case 'askGemini': // ADD this new case
+                const selectedTextGemini = this.getSelectedText();
+                if (selectedTextGemini && this.onAskGemini) {
+                    this.onAskGemini(selectedTextGemini, this.tab.type);
+                }
+                break;
                 this.cut();
                 break;
             case 'copy':
@@ -350,9 +509,18 @@ export class CodeEditor {
         return this.view ? this.view.state.doc.toString() : '';
     }
 
+    replaceSelection(newText) {
+        if (!this.view) return false;
+        const { from, to } = this.view.state.selection.main;
+        this.view.dispatch({
+            changes: { from, to, insert: newText }
+        });
+        return true;
+    }
+
     destroy() {
         this.hideContextMenu();
-        // Event-Listener entfernen (Memory Leak vermeiden)
+        // Event-Listener entfernen
         if (this._boundClickHandler) {
             document.removeEventListener('click', this._boundClickHandler);
             this._boundClickHandler = null;
@@ -361,16 +529,22 @@ export class CodeEditor {
             document.removeEventListener('keydown', this._boundKeyHandler);
             this._boundKeyHandler = null;
         }
+        if (this._boundDragOverHandler) {
+            document.removeEventListener('dragover', this._boundDragOverHandler);
+            this._boundDragOverHandler = null;
+        }
+        if (this._boundDragLeaveHandler) {
+            document.removeEventListener('dragleave', this._boundDragLeaveHandler);
+            this._boundDragLeaveHandler = null;
+        }
         if (this.view) {
             this.view.destroy();
             this.view = null;
         }
+        this.container.classList.remove('drag-over');
     }
 
     // updateLanguage wechselt die Programmiersprache des Editors.
-    // CodeMirror 6 unterstützt keinen dynamischen Extension-Austausch,
-    // daher wird der gesamte Editor zerstört und neu erstellt.
-    // Der Inhalt bleibt erhalten (wird aus this.tab.content wiederhergestellt).
     updateLanguage(type) {
         if (this.view) {
             this.tab.type = type;
@@ -379,10 +553,7 @@ export class CodeEditor {
         }
     }
 
-    // Die folgenden Methoden (cut, copy, paste, undo, redo, etc.) werden
-    // von executeEditorCommand() in main.js aufgerufen.
-    // Clipboard-Operationen nutzen die Wails-Runtime (window.runtime.ClipboardSetText/
-    // ClipboardGetText), da der WebView keinen direkten Clipboard-Zugriff hat.
+    // Editor-Befehle
     cut() {
         if (!this.view) return false;
         this.view.focus();
@@ -466,7 +637,6 @@ export class CodeEditor {
         if (!this.view) return false;
         this.view.focus();
         openSearchPanel(this.view);
-        // Open replace by clicking the toggle button after panel is open
         requestAnimationFrame(() => {
             const panel = this.view.dom.querySelector('.cm-search');
             if (panel) {
@@ -474,13 +644,11 @@ export class CodeEditor {
                 if (replaceBtn) {
                     replaceBtn.click();
                 } else {
-                    // Toggle to show replace fields
                     const toggleBtn = panel.querySelector('button.ͼ1y, button[aria-label]');
                     if (toggleBtn && toggleBtn.textContent.includes('replace')) {
                         toggleBtn.click();
                     }
                 }
-                // Focus the replace field
                 const replaceField = panel.querySelector('input[name="replace"]');
                 if (replaceField) replaceField.focus();
             }
@@ -495,19 +663,14 @@ export class CodeEditor {
         return true;
     }
 
-    // Scrollt direkt zu einer bestimmten Zeile (ohne Dialog)
     scrollToLine(lineNumber) {
         if (!this.view) return false;
 
         const doc = this.view.state.doc;
         const maxLine = doc.lines;
-
-        // Zeilennummer begrenzen
         lineNumber = Math.max(1, Math.min(lineNumber, maxLine));
-
         const line = doc.line(lineNumber);
 
-        // Cursor an den Zeilenanfang setzen und Zeile in Sichtbereich scrollen
         this.view.dispatch({
             selection: { anchor: line.from },
             scrollIntoView: true
@@ -524,18 +687,16 @@ export class CodeEditor {
         return { line: line.number, col: pos - line.from + 1 };
     }
 
-    // Einfache Code-Formatierung ohne externe Abhängigkeiten
+    // Einfache Code-Formatierung
     formatCode(code, type) {
-        // JSON: Native Formatierung
         if (type === 'json') {
             try {
                 return JSON.stringify(JSON.parse(code), null, 4);
             } catch {
-                return null; // Ungültiges JSON
+                return null;
             }
         }
 
-        // JavaScript/HTML/CSS: Einrückung korrigieren
         if (['javascript', 'html', 'css'].includes(type)) {
             return this.formatWithIndentation(code);
         }
@@ -543,12 +704,11 @@ export class CodeEditor {
         return null;
     }
 
-    // Formatiert Code mit korrekter Einrückung basierend auf Klammern
     formatWithIndentation(code) {
         const lines = code.split('\n');
         const result = [];
         let indentLevel = 0;
-        const indentStr = '    '; // 4 Spaces
+        const indentStr = '    ';
 
         for (let line of lines) {
             let trimmed = line.trim();
@@ -557,16 +717,13 @@ export class CodeEditor {
                 continue;
             }
 
-            // Einrückung verringern bei schließenden Klammern am Anfang
             const opensWithClose = /^[\}\]\)]/.test(trimmed);
             if (opensWithClose && indentLevel > 0) {
                 indentLevel--;
             }
 
-            // Zeile mit aktueller Einrückung hinzufügen
             result.push(indentStr.repeat(indentLevel) + trimmed);
 
-            // Zähle öffnende und schließende Klammern (außerhalb von Strings)
             let opens = 0, closes = 0;
             let inString = false, stringChar = '';
             for (let i = 0; i < trimmed.length; i++) {
@@ -584,9 +741,8 @@ export class CodeEditor {
                 }
             }
 
-            // Einrückung anpassen (schließende am Anfang schon berücksichtigt)
             indentLevel += opens - closes;
-            if (opensWithClose) indentLevel++; // Korrektur für bereits verringerte
+            if (opensWithClose) indentLevel++;
             indentLevel = Math.max(0, indentLevel);
         }
 
@@ -635,5 +791,4 @@ export class CodeEditor {
         }
         return true;
     }
-
 }

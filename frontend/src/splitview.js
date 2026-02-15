@@ -15,7 +15,6 @@ export class SplitView {
         this.onFileOpenRequest = options.onFileOpenRequest || null;
 
         this.focusedPaneIndex = 0;
-        this.lastDragOverPaneIndex = null;
 
         // Pane-Datenmodell — gleiche Shape wie Tab, damit CodeEditor sie direkt nutzt
         this.panes = [
@@ -119,9 +118,6 @@ export class SplitView {
 
         // Focus-Tracking
         this.setupFocusTracking(paneIndex);
-
-        // Drag-and-Drop
-        this.setupPaneDragDrop(paneIndex);
 
         return pane;
     }
@@ -275,30 +271,6 @@ export class SplitView {
                 const pos = this.editors[paneIndex].getCursorPosition();
                 this.onCursorChange(pos.line, pos.col);
             }
-        });
-    }
-
-    setupPaneDragDrop(paneIndex) {
-        const paneEl = this.paneElements[paneIndex];
-
-        paneEl.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            e.dataTransfer.dropEffect = 'copy';
-            paneEl.classList.add('splitview-pane-dragover');
-            this.lastDragOverPaneIndex = paneIndex;
-        });
-
-        paneEl.addEventListener('dragleave', () => {
-            paneEl.classList.remove('splitview-pane-dragover');
-        });
-
-        paneEl.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            paneEl.classList.remove('splitview-pane-dragover');
-            // Datei-Drop wird vom Go-Backend via 'file-drop' Event verarbeitet.
-            // lastDragOverPaneIndex wird von main.js genutzt um die richtige Pane zu finden.
         });
     }
 

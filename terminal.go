@@ -1,3 +1,5 @@
+//go:build !windows
+
 // terminal.go - PTY-basierte Terminal-Sitzungen.
 // Ermöglicht das Öffnen von Shell-Sessions in Editor-Tabs.
 // Jeder Tab hat seine eigene PTY-Session mit unabhängigem Prozess.

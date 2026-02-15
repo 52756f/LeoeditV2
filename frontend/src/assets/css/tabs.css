@@ -585,16 +585,6 @@
     margin: 4px 0;
 }
 
-/* ===== DRAG & DROP INDICATOR ===== */
-.tab-drop-indicator {
-    position: absolute;
-    top: 0;
-    height: 3px;
-    background: #0078d4;
-    pointer-events: none;
-    transition: left 0.1s, width 0.1s;
-}
-
 /* ===== BADGE (for modified files) ===== */
 .tab-badge {
     background: #0078d4;
@@ -656,4 +646,27 @@
     .editor-container {
         height: 100vh;
     }
+}
+
+/* In deiner style.css */
+.editor-container.drag-over,
+.cm-editor.drag-over {
+    outline: 2px dashed #0078d7;
+    outline-offset: -2px;
+    background-color: rgba(0, 120, 215, 0.05);
+}
+
+.cm-editor.drag-over .cm-content {
+    background-color: rgba(0, 120, 215, 0.02);
+}
+
+/* Optional: Animierter Hintergrund */
+@keyframes dragPulse {
+    0% { outline-color: #0078d7; }
+    50% { outline-color: #4CAF50; }
+    100% { outline-color: #0078d7; }
+}
+
+.editor-container.drag-over {
+    animation: dragPulse 1.5s infinite;
 }

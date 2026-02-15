@@ -6,7 +6,7 @@
 //
 // Die Imports aus "../wailsjs/go/main/App.js" sind automatisch generierte
 // Wails-Bindings — sie rufen Go-Funktionen auf dem Backend auf.
-import { LoadFile, SaveFile, SaveFileUnder, ReadBinaryFile, ReadTextFile, GetStartupFiles } from "../wailsjs/go/main/App.js";
+import { LoadFile, SaveFile, SaveFileUnder, ReadBinaryFile, ReadTextFile, GetStartupFiles, AskGeminiForSuggestions } from "../wailsjs/go/main/App.js";
 import { getFilenameFromPath, getFileType } from './lib/utils.js'
 import { Menu } from './lib/menu.js';
 import { Toolbar } from './lib/toolbar.js';
@@ -14,6 +14,7 @@ import { LeftToolbar } from './clsLeftToolbar.js';
 import { FileExplorer } from './clsFileExplorer.js';
 import { ProjectExplorer } from './clsProjectExplorer.js';
 import { SearchPanel } from './clsSearchPanel.js';
+import { CodeMirrorOutliner } from './clsOutliner.js';
 import { TabView } from './tabview.js';
 import { APP_CONFIG, STATUS_MESSAGES } from './lib/constants.js';
 import { StatusBar } from './statusbar.js';
@@ -42,19 +43,8 @@ let sidebar;
 let fileExplorer;
 let projectExplorer;
 let searchPanel;
+let outliner;
 let statusbar;
-
-// Drag & Drop auf Fensterebene: Verhindert, dass der Browser beim Ablegen
-// einer Datei zur Datei navigiert (Standardverhalten). Stattdessen wird
-// der "+"-Cursor angezeigt. Die eigentliche Dateiverarbeitung passiert
-// im Go-Backend (OnFileDrop in app.go).
-window.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'copy';
-}, false);
-window.addEventListener('drop', (e) => {
-  e.preventDefault();
-}, false);
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -113,7 +103,42 @@ document.addEventListener('DOMContentLoaded', () => {
     onTabChange: updateMenuState,
     onCursorChange: (line, col) => statusbar?.updateCursor(line, col),
     onSplitPaneFileOpen: (splitView, paneIndex) => openFileForSplitPane(splitView, paneIndex),
-    onAskAI: (selectedText, fileType) => askAIAboutCode(selectedText, fileType)
+    onAskAI: (selectedText, fileType) => askAIAboutCode(selectedText, fileType),
+    onAskGemini: async (selectedText, fileType) => { // Make async
+      console.log('Gemini fragen clicked:', selectedText, fileType);
+      
+      const activeTab = tabView?.getActiveTab();
+      if (!activeTab) {
+        console.error("No active tab for Gemini suggestions.");
+        alert("No active tab for Gemini suggestions.");
+        return;
+      }
+
+      const editor = tabView.editors?.get(activeTab.id);
+      // Ensure editor exists and has the replaceSelection method
+      if (!editor || !editor.replaceSelection) {
+          console.error("Editor not found or replaceSelection method not available.");
+          alert("Editor not ready for replacement.");
+          return;
+      }
+
+      const fullContent = editor ? editor.getContent() : '';
+
+      try {
+        // Call the Go backend function
+        const suggestion = await window.go.main.App.AskGeminiForSuggestions(selectedText, fileType, fullContent);
+        
+        if (suggestion) {
+          // Replace selected text with Gemini's suggestion using the new method
+          editor.replaceSelection(suggestion);
+        } else {
+          alert("Gemini returned an empty suggestion.");
+        }
+      } catch (error) {
+        console.error("Error asking Gemini for suggestions:", error);
+        alert("Error getting suggestion from Gemini: " + error.message);
+      }
+    }
   });
 
   // Initialize file explorer
@@ -134,6 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  // Initialize outliner inside project explorer
+  outliner = new CodeMirrorOutliner('outliner');
+  projectExplorer.setOutliner(outliner);
 
   // Initialize search panel
   searchPanel = new SearchPanel(searchPanelContainer, {
@@ -171,6 +200,11 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       tabView.createNewTab('AI Fenster', '', null, 'ai');
     }
+    updateMenuState();
+  });
+
+  sidebar.registerAction('Terminal', () => {
+    tabView.createNewTab('Terminal', '', null, 'terminal');
     updateMenuState();
   });
 
@@ -308,40 +342,14 @@ document.addEventListener('DOMContentLoaded', () => {
   window.tabView = tabView;
   window.menu = menu;
 
-  // Drag & Drop: Empfängt Events vom Go-Backend (app.go → runtime.EventsEmit).
-  // Doppelte Deduplizierung: Sowohl Go als auch hier im Frontend wird
-  // gefiltert, da Linux/WebKit Drop-Events mehrfach auslösen kann.
-  // recentDrops speichert Pfade mit Zeitstempel und ignoriert
-  // Wiederholungen innerhalb von 1 Sekunde.
-  const recentDrops = new Map();
-  // Cleanup alte Einträge alle 30 Sekunden (Memory Leak vermeiden)
-  setInterval(() => {
-    const now = Date.now();
-    for (const [path, timestamp] of recentDrops) {
-      if (now - timestamp > 5000) recentDrops.delete(path);
-    }
-  }, 30000);
-
+  // Datei-Drop: Empfängt Events vom Go-Backend (app.go → runtime.OnFileDrop).
   if (window.runtime?.EventsOn) {
+    const recentDrops = new Map();
     window.runtime.EventsOn('file-drop', (filepath) => {
       if (!filepath) return;
       const now = Date.now();
-      if (recentDrops.has(filepath) && now - recentDrops.get(filepath) < 1000) {
-        return; // Duplikat ignorieren
-      }
+      if (recentDrops.has(filepath) && now - recentDrops.get(filepath) < 1000) return;
       recentDrops.set(filepath, now);
-
-      // Split-View: Datei in die zuletzt überfahrene Pane laden
-      const activeTab = tabView?.getActiveTab();
-      if (activeTab?.type === 'split') {
-        const splitView = tabView.splitViews?.get(activeTab.id);
-        if (splitView && splitView.lastDragOverPaneIndex != null) {
-          openFileForSplitPaneByPath(splitView, splitView.lastDragOverPaneIndex, filepath);
-          splitView.lastDragOverPaneIndex = null;
-          return;
-        }
-      }
-
       openFileByPath(filepath);
     });
   }
@@ -370,6 +378,11 @@ function updateMenuState() {
   const hasTabs = tabView?.count() > 0;
   const hasMoreTabs = tabView?.count() > 1;
   const hasModifiedTabs = tabView?.getAllTabs().some(tab => tab.isModified) || false;
+  // "Speichern" nur aktiv wenn geänderte Tabs mit echtem Dateipfad existieren
+  // (Unbenannt.txt ohne Pfad soll nicht ungefragt gespeichert werden → "Speichern unter" nutzen)
+  const hasSaveableTabs = tabView?.getAllTabs().some(tab =>
+    tab.isModified && tab.path && !tab.path.toLowerCase().endsWith('unbenannt.txt')
+  ) || false;
 
   // Update window title
   if (activeTab) {
@@ -379,9 +392,9 @@ function updateMenuState() {
 
   // Update save buttons state
   if (menu) {
-    // Enable/disable save buttons based on modifications
-    menu.setItemEnabled('menu-save', hasModifiedTabs);
-    menu.setItemEnabled('menu-save-under', hasModifiedTabs);
+    menu.setItemEnabled('menu-save', hasSaveableTabs);
+    // "Speichern unter" ist immer verfügbar wenn Tabs existieren
+    menu.setItemEnabled('menu-save-under', hasTabs);
 
     // Enable/disable close buttons based on tabs
     menu.setItemEnabled('menu-close-file', hasTabs);
@@ -401,7 +414,7 @@ function updateMenuState() {
   }
 
   if (toolbar) {
-    toolbar.setButtonEnabled('save-file', hasModifiedTabs);
+    toolbar.setButtonEnabled('save-file', hasSaveableTabs);
     const isEditorTab = activeTab !== null && activeTab.type !== 'ai' && activeTab.type !== 'terminal' && activeTab.type !== 'audio';
     toolbar.setButtonEnabled('undo', isEditorTab);
     toolbar.setButtonEnabled('redo', isEditorTab);
@@ -437,6 +450,19 @@ function updateMenuState() {
       }
     } else {
       statusbar.clear();
+    }
+  }
+
+  // Update outliner when active tab changes
+  if (projectExplorer?.isVisible() && outliner) {
+    const codeTypes = ['javascript', 'go', 'python', 'perl', 'php', 'java', 'cpp', 'c', 'css', 'html'];
+    if (activeTab && codeTypes.includes(activeTab.type)) {
+      const editor = tabView.editors?.get(activeTab.id);
+      if (editor && outliner.editor !== editor) {
+        projectExplorer.updateOutliner(editor);
+      }
+    } else if (outliner.editor !== null) {
+      projectExplorer.updateOutliner(null);
     }
   }
 }

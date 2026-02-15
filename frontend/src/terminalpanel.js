@@ -101,6 +101,18 @@ export class TerminalPanel {
             }
         });
 
+        // Kontextmenü für Rechtsklick (auf xterm-Element, nicht Panel)
+        this.contextMenu = null;
+        this.terminal.element.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showContextMenu(e.clientX, e.clientY);
+        });
+        this._boundClickHandler = () => this.hideContextMenu();
+        this._boundKeyHandler = (e) => { if (e.key === 'Escape') this.hideContextMenu(); };
+        document.addEventListener('click', this._boundClickHandler);
+        document.addEventListener('keydown', this._boundKeyHandler);
+
         // Resize-Handling einrichten
         this.setupResizeHandling();
     }
@@ -166,6 +178,138 @@ export class TerminalPanel {
         }
     }
 
+    showContextMenu(x, y) {
+        this.hideContextMenu();
+
+        const selection = this.terminal.getSelection();
+
+        this.contextMenu = document.createElement('div');
+        this.contextMenu.className = 'terminal-context-menu';
+        this.contextMenu.style.cssText = `
+            position: fixed;
+            left: ${x}px;
+            top: ${y}px;
+            background: #252526;
+            border: 1px solid #454545;
+            border-radius: 4px;
+            padding: 4px 0;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 10000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 13px;
+        `;
+
+        const menuItems = [
+            { label: 'Kopieren', icon: '📋', action: 'copy', shortcut: 'Ctrl+Shift+C', disabled: !selection },
+            { label: 'Einfügen', icon: '📄', action: 'paste', shortcut: 'Ctrl+Shift+V' },
+            { type: 'separator' },
+            { label: 'Alles auswählen', action: 'selectAll', shortcut: 'Ctrl+Shift+A' },
+            { label: 'Auswahl löschen', action: 'clearSelection', disabled: !selection },
+            { type: 'separator' },
+            { label: 'Terminal löschen', action: 'clear' },
+        ];
+
+        menuItems.forEach(item => {
+            if (item.type === 'separator') {
+                const sep = document.createElement('div');
+                sep.style.cssText = 'height: 1px; background: #454545; margin: 4px 0;';
+                this.contextMenu.appendChild(sep);
+                return;
+            }
+
+            const menuItem = document.createElement('div');
+            menuItem.style.cssText = `
+                padding: 6px 12px;
+                cursor: ${item.disabled ? 'default' : 'pointer'};
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: ${item.disabled ? '#6e6e6e' : '#cccccc'};
+            `;
+
+            const leftPart = document.createElement('span');
+            leftPart.textContent = (item.icon ? item.icon + ' ' : '') + item.label;
+
+            const shortcut = document.createElement('span');
+            shortcut.style.cssText = 'color: #6e6e6e; font-size: 11px; margin-left: 20px;';
+            shortcut.textContent = item.shortcut || '';
+
+            menuItem.appendChild(leftPart);
+            menuItem.appendChild(shortcut);
+
+            if (!item.disabled) {
+                menuItem.addEventListener('mouseenter', () => {
+                    menuItem.style.background = '#094771';
+                });
+                menuItem.addEventListener('mouseleave', () => {
+                    menuItem.style.background = 'transparent';
+                });
+                menuItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.hideContextMenu();
+                    this.executeContextAction(item.action);
+                });
+            }
+
+            this.contextMenu.appendChild(menuItem);
+        });
+
+        document.body.appendChild(this.contextMenu);
+
+        // Position anpassen wenn außerhalb des Viewports
+        const rect = this.contextMenu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            this.contextMenu.style.left = `${window.innerWidth - rect.width - 10}px`;
+        }
+        if (rect.bottom > window.innerHeight) {
+            this.contextMenu.style.top = `${window.innerHeight - rect.height - 10}px`;
+        }
+    }
+
+    hideContextMenu() {
+        if (this.contextMenu && this.contextMenu.parentNode) {
+            this.contextMenu.parentNode.removeChild(this.contextMenu);
+        }
+        this.contextMenu = null;
+    }
+
+    executeContextAction(action) {
+        switch (action) {
+            case 'copy':
+                const text = this.terminal.getSelection();
+                if (text && window.runtime?.ClipboardSetText) {
+                    window.runtime.ClipboardSetText(text).catch(err => {
+                        console.error('Terminal clipboard copy failed:', err);
+                    });
+                }
+                break;
+            case 'paste':
+                if (window.runtime?.ClipboardGetText) {
+                    window.runtime.ClipboardGetText().then(text => {
+                        if (text && !this.isDestroyed) {
+                            WriteTerminal(this.tabId, text).catch(err => {
+                                console.error('Paste to terminal error:', err);
+                            });
+                        }
+                    }).catch(err => {
+                        console.error('Terminal clipboard paste failed:', err);
+                    });
+                }
+                break;
+            case 'selectAll':
+                this.terminal.selectAll();
+                break;
+            case 'clearSelection':
+                this.terminal.clearSelection();
+                break;
+            case 'clear':
+                this.terminal.clear();
+                break;
+        }
+        this.terminal.focus();
+    }
+
     focus() {
         if (this.terminal && !this.isDestroyed) {
             this.terminal.focus();
@@ -178,6 +322,9 @@ export class TerminalPanel {
 
         // Events entfernen
         this.unregisterEvents();
+        this.hideContextMenu();
+        document.removeEventListener('click', this._boundClickHandler);
+        document.removeEventListener('keydown', this._boundKeyHandler);
 
         // Backend-Session beenden
         StopTerminal(this.tabId).catch(err => {

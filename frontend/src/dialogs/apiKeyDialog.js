@@ -1,15 +1,18 @@
-import { SetOpenRouterApiKey, GetOpenRouterApiKey, HasOpenRouterApiKey } from '../../wailsjs/go/main/App.js';
+import { SetOpenRouterApiKey, GetOpenRouterApiKey, HasOpenRouterApiKey, SetGeminiApiKey, GetGeminiApiKey, HasGeminiApiKey } from '../../wailsjs/go/main/App.js';
 
 export async function showApiKeyDialog() {
     const existing = document.getElementById('apikey-dialog-overlay');
     if (existing) existing.remove();
 
-    // Get current key status
-    const hasKey = await HasOpenRouterApiKey();
-    const currentKey = hasKey ? await GetOpenRouterApiKey() : '';
+    // Get current key status for OpenRouter
+    const hasOpenRouterKey = await HasOpenRouterApiKey();
+    const currentOpenRouterKey = hasOpenRouterKey ? await GetOpenRouterApiKey() : '';
+    const maskedOpenRouterKey = currentOpenRouterKey ? '••••••••••••' + currentOpenRouterKey.slice(-4) : '';
 
-    // Mask the key for display (show only last 4 chars)
-    const maskedKey = currentKey ? '••••••••••••' + currentKey.slice(-4) : '';
+    // Get current key status for Gemini
+    const hasGeminiKey = await HasGeminiApiKey();
+    const currentGeminiKey = hasGeminiKey ? await GetGeminiApiKey() : '';
+    const maskedGeminiKey = currentGeminiKey ? '••••••••••••' + currentGeminiKey.slice(-4) : '';
  
     const overlay = document.createElement('div');
     overlay.id = 'apikey-dialog-overlay';
@@ -17,25 +20,46 @@ export async function showApiKeyDialog() {
     overlay.innerHTML = `
         <div class="dialog apikey-dialog">
             <div class="dialog-header">
-                <h3>OpenRouter API Key</h3>
+                <h3>API Key Einstellungen</h3>
                 <button class="dialog-close" id="apikey-dialog-close">&times;</button>
             </div>
             <div class="dialog-body">
+                <h4>OpenRouter API Key</h4>
                 <p class="apikey-info">
                     Der API Key wird verschlüsselt gespeichert.<br>
                     <a href="https://openrouter.ai/keys" target="_blank" class="apikey-link">API Key bei OpenRouter erstellen</a>
                 </p>
-                <div class="apikey-status ${hasKey ? 'has-key' : 'no-key'}">
-                    ${hasKey ? '✓ API Key ist gesetzt' : '✗ Kein API Key konfiguriert'}
+                <div class="apikey-status ${hasOpenRouterKey ? 'has-key' : 'no-key'}">
+                    ${hasOpenRouterKey ? '✓ OpenRouter API Key ist gesetzt' : '✗ OpenRouter API Key nicht konfiguriert'}
                 </div>
-                ${hasKey ? `<div class="apikey-current">Aktuell: ${maskedKey}</div>` : ''}
+                ${hasOpenRouterKey ? `<div class="apikey-current" id="openrouter-key-current">Aktuell: ${maskedOpenRouterKey}</div>` : ''}
                 <div class="apikey-input-group">
-                    <label for="apikey-input">Neuer API Key:</label>
-                    <input type="password" id="apikey-input"
+                    <label for="openrouter-apikey-input">Neuer OpenRouter API Key:</label>
+                    <input type="password" id="openrouter-apikey-input"
                            placeholder="sk-or-v1-..."
                            autocomplete="off"
                            spellcheck="false">
-                    <button id="apikey-toggle" class="apikey-toggle" title="Anzeigen/Verbergen">
+                    <button id="openrouter-apikey-toggle" class="apikey-toggle" title="Anzeigen/Verbergen">
+                        👁
+                    </button>
+                </div>
+
+                <h4 style="margin-top: 20px;">Google Gemini API Key</h4>
+                <p class="apikey-info">
+                    Der API Key wird verschlüsselt gespeichert.<br>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="apikey-link">API Key bei Google AI Studio erstellen</a>
+                </p>
+                <div class="apikey-status ${hasGeminiKey ? 'has-key' : 'no-key'}">
+                    ${hasGeminiKey ? '✓ Gemini API Key ist gesetzt' : '✗ Gemini API Key nicht konfiguriert'}
+                </div>
+                ${hasGeminiKey ? `<div class="apikey-current" id="gemini-key-current">Aktuell: ${maskedGeminiKey}</div>` : ''}
+                <div class="apikey-input-group">
+                    <label for="gemini-apikey-input">Neuer Gemini API Key:</label>
+                    <input type="password" id="gemini-apikey-input"
+                           placeholder="AIza..."
+                           autocomplete="off"
+                           spellcheck="false">
+                    <button id="gemini-apikey-toggle" class="apikey-toggle" title="Anzeigen/Verbergen">
                         👁
                     </button>
                 </div>
@@ -49,22 +73,41 @@ export async function showApiKeyDialog() {
 
     document.body.appendChild(overlay);
 
-    const input = document.getElementById('apikey-input');
-    const toggleBtn = document.getElementById('apikey-toggle');
-    const saveBtn = document.getElementById('apikey-dialog-save');
-    const keycurrent = document.querySelector('.apikey-current');
-    console.log("Keycurrent element:", keycurrent);
+    // OpenRouter elements
+    const openRouterInput = document.getElementById('openrouter-apikey-input');
+    const openRouterToggleBtn = document.getElementById('openrouter-apikey-toggle');
+    const openRouterKeyCurrent = document.getElementById('openrouter-key-current');
 
-    // Toggle password visibility
-    toggleBtn.addEventListener('click', () => {
-        if (input.type === 'password') {
-            input.type = 'text';
-            toggleBtn.textContent = '🙈';
-            keycurrent.textContent = 'Aktuell: ' + currentKey;
+    // Gemini elements
+    const geminiInput = document.getElementById('gemini-apikey-input');
+    const geminiToggleBtn = document.getElementById('gemini-apikey-toggle');
+    const geminiKeyCurrent = document.getElementById('gemini-key-current');
+
+    const saveBtn = document.getElementById('apikey-dialog-save');
+
+    // Toggle OpenRouter password visibility
+    openRouterToggleBtn.addEventListener('click', () => {
+        if (openRouterInput.type === 'password') {
+            openRouterInput.type = 'text';
+            openRouterToggleBtn.textContent = '🙈';
+            if (openRouterKeyCurrent) openRouterKeyCurrent.textContent = 'Aktuell: ' + currentOpenRouterKey;
         } else {
-            input.type = 'password';
-            toggleBtn.textContent = '👁';
-            keycurrent.textContent = 'Aktuell: ' + maskedKey;
+            openRouterInput.type = 'password';
+            openRouterToggleBtn.textContent = '👁';
+            if (openRouterKeyCurrent) openRouterKeyCurrent.textContent = 'Aktuell: ' + maskedOpenRouterKey;
+        }
+    });
+
+    // Toggle Gemini password visibility
+    geminiToggleBtn.addEventListener('click', () => {
+        if (geminiInput.type === 'password') {
+            geminiInput.type = 'text';
+            geminiToggleBtn.textContent = '🙈';
+            if (geminiKeyCurrent) geminiKeyCurrent.textContent = 'Aktuell: ' + currentGeminiKey;
+        } else {
+            geminiInput.type = 'password';
+            geminiToggleBtn.textContent = '👁';
+            if (geminiKeyCurrent) geminiKeyCurrent.textContent = 'Aktuell: ' + maskedGeminiKey;
         }
     });
 
@@ -77,33 +120,60 @@ export async function showApiKeyDialog() {
 
     // Save handler
     saveBtn.addEventListener('click', async () => {
-        const newKey = input.value.trim();
-        if (!newKey) {
-            alert('Bitte einen API Key eingeben.');
-            return;
+        const newOpenRouterKey = openRouterInput.value.trim();
+        const newGeminiKey = geminiInput.value.trim();
+        let changesMade = false;
+
+        // Save OpenRouter Key
+        if (newOpenRouterKey) {
+            if (!newOpenRouterKey.startsWith('sk-')) {
+                alert('OpenRouter: Ungültiges Format. Keys beginnen mit "sk-".');
+                return;
+            }
+            try {
+                await SetOpenRouterApiKey(newOpenRouterKey);
+                changesMade = true;
+            } catch (err) {
+                alert('OpenRouter: Fehler beim Speichern: ' + err);
+                return;
+            }
+        } else if (currentOpenRouterKey && openRouterInput.value === '') { // Allow clearing the key
+             await SetOpenRouterApiKey(''); // Clear existing key
+             changesMade = true;
         }
 
-        if (!newKey.startsWith('sk-')) {
-            alert('Ungültiges Format. OpenRouter Keys beginnen mit "sk-".');
-            return;
+        // Save Gemini Key
+        if (newGeminiKey) {
+            if (!newGeminiKey.startsWith('AIza')) { // Gemini API keys typically start with AIza
+                alert('Gemini: Ungültiges Format. Keys beginnen mit "AIza".');
+                return;
+            }
+            try {
+                await SetGeminiApiKey(newGeminiKey);
+                changesMade = true;
+            } catch (err) {
+                alert('Gemini: Fehler beim Speichern: ' + err);
+                return;
+            }
+        } else if (currentGeminiKey && geminiInput.value === '') { // Allow clearing the key
+             await SetGeminiApiKey(''); // Clear existing key
+             changesMade = true;
         }
 
-        try {
-            await SetOpenRouterApiKey(newKey);
-            alert('API Key wurde gespeichert!');
-            overlay.remove();
-        } catch (err) {
-            alert('Fehler beim Speichern: ' + err);
+        if (changesMade) {
+            alert('API Key(s) wurden gespeichert!');
+        } else {
+            alert('Keine Änderungen vorgenommen.');
         }
+        overlay.remove();
     });
 
-    // Focus input
-    input.focus();
-
-    // Enter key to save
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            saveBtn.click();
-        }
-    });
+    // Focus on the first empty input, or OpenRouter if both have keys
+    if (!hasOpenRouterKey) {
+        openRouterInput.focus();
+    } else if (!hasGeminiKey) {
+        geminiInput.focus();
+    } else {
+        openRouterInput.focus();
+    }
 }
